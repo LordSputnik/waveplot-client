@@ -27,7 +27,7 @@ import sys
 import tempfile
 
 VERSION = "BANNANA"
-EDITOR_KEY = "7852842"
+EDITOR_KEY = ""
 
 exe_file = ""
 if sys.platform == "win32":
@@ -47,23 +47,7 @@ dumpdir = os.path.abspath(".")
 
 FindExe()
 
-file, img_filename = tempfile.mkstemp()
-os.close(file)
-
-file, info_filename = tempfile.mkstemp()
-os.close(file)
-
-file, lrg_thumb_filename = tempfile.mkstemp()
-os.close(file)
-
-file, small_thumb_filename = tempfile.mkstemp()
-os.close(file)
-
-#img_filename = "test.png"
-#info_filename = "info.tmp"
-
 print "Using executable: " + exe_file
-print "Placing temp images in: {} and info in: {}".format(img_filename,info_filename)
 
 if EDITOR_KEY == "":
     EDITOR_KEY = input("\nPlease enter your activation key below:\n")
@@ -124,28 +108,33 @@ for directory, directories, filenames in os.walk("."):
                     disc_num = str(audio["DISCNUMBER"][0])
 
         if (recording_id != "") and (release_id != "") and (track_num != "") and (disc_num != ""):
-            if subprocess.call([exe_file,in_path,img_filename,lrg_thumb_filename,small_thumb_filename,info_filename,VERSION]) != 0:
-                continue;
+            output = subprocess.check_output([exe_file,in_path,VERSION])
 
-            img_file = open(img_filename,"rb")
+            output = output.partition("WAVEPLOT_START")[2]
 
-            img_upload_string = base64.b64encode(img_file.read())
+            image_data, sep, output = output.partition("WAVEPLOT_LARGE_THUMB")
+            if sep == "":
+                raise ValueError
 
-            img_file.close()
-            img_file = open(lrg_thumb_filename,"rb")
+            large_thumbnail, sep, output = output.partition("WAVEPLOT_SMALL")
+            if sep == "":
+                raise ValueError
 
-            lrg_thumb_upload_string = base64.b64encode(img_file.read())
+            small_thumbnail, sep, output = output.partition("WAVEPLOT_INFO")
+            if sep == "":
+                raise ValueError
 
-            img_file.close()
-            img_file = open(small_thumb_filename,"rb")
+            info, sep, output = output.partition("WAVEPLOT_END")
+            if sep == "":
+                raise ValueError
 
-            small_thumb_upload_string = base64.b64encode(img_file.read())
+            image_data = base64.b64encode(image_data)
 
-            img_file.close()
+            large_thumbnail = base64.b64encode(large_thumbnail)
 
-            info_file = open(info_filename,"rb")
+            small_thumbnail = base64.b64encode(small_thumbnail)
 
-            length, trimmed, sourcetype, num_channels = info_file.read().split("|")
+            length, trimmed, sourcetype, num_channels = info.split("|")
 
             url = 'http://pi.ockmore.net:19048/submit'
 
@@ -153,9 +142,9 @@ for directory, directories, filenames in os.walk("."):
                       'release' : release_id,
                       'track' : track_num,
                       'disc' : disc_num,
-                      'image' : img_upload_string,
-                      'large_thumb' : lrg_thumb_upload_string,
-                      'small thumb' : small_thumb_upload_string,
+                      'image' : image_data,
+                      'large_thumb' : large_thumbnail,
+                      'small thumb' : small_thumbnail,
                       'editor' : EDITOR_KEY,
                       'length' : length,
                       'trimmed' : trimmed,
@@ -169,8 +158,3 @@ for directory, directories, filenames in os.walk("."):
             the_page = response.read()
 
             print the_page
-
-os.remove(img_filename)
-os.remove(lrg_thumb_filename)
-os.remove(small_thumb_filename)
-os.remove(info_filename)

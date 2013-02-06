@@ -69,7 +69,7 @@ class Audio
 
   bool CalculateMixHash();
 
-  bool WritePNG(const std::string & filename, uint16_t image_width, uint16_t image_height, png_byte** data);
+  bool WritePNG(uint16_t image_width, uint16_t image_height, png_byte** data);
 
   public:
     int64_t duration_secs_;
@@ -79,10 +79,10 @@ class Audio
     std::vector<int16_t> samples_;
     Audio(const char* filename);
 
-    bool SaveWavePlotImage(const std::string & filename);
-    bool SaveWavePlotLargeThumb(const std::string & filename);
-    bool SaveWavePlotSmallThumb(const std::string & filename);
-    bool SaveWavePlotInfo(const std::string & filename);
+    bool SaveWavePlotImage();
+    bool SaveWavePlotLargeThumb();
+    bool SaveWavePlotSmallThumb();
+    bool SaveWavePlotInfo();
 };
 
 #endif // _WAVEPLOT_AUDIO_HPP_

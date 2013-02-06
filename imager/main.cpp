@@ -42,7 +42,7 @@ extern "C"
   #include <png.h>
 }
 
-#include "Audio.hpp"
+#include "audio.hpp"
 
 void die(const char* message)
 {
@@ -56,31 +56,24 @@ const char* version = "BANNANA";
 
 int main(int argc, char* argv[])
 {
+
 //#define STANDALONE
 #ifndef STANDALONE
-  if(argc != 7)
+  if(argc != 3)
   {
-    printf("Exiting Imager: Wrong number of program parameters: %i\n",argc);
+    printf("Exiting Imager: Wrong number of program parameters: %i (Required 3)\n",argc);
     return 1;
   }
 
-  if(strcmp(version,argv[6]) != 0)
+  if(strcmp(version,argv[2]) != 0)
   {
     printf("Exiting Imager: Scanner-Imager version mismatch! (Scanner says: %s, Imager says: %s)\n",argv[3],version);
     return 1;
   }
 
   char* input_filename = argv[1];
-  char* image_filename = argv[2];
-  char* large_thumb_filename = argv[3];
-  char* small_thumb_filename = argv[4];
-  char* info_filename = argv[5];
 #else
   char* input_filename = "test-break.flac";
-  char* image_filename = "output-hi.png";
-  char* large_thumb_filename = "output-mid.png";
-  char* small_thumb_filename = "output-low.png";
-  char* info_filename = "info";
 #endif
 
 
@@ -91,10 +84,15 @@ int main(int argc, char* argv[])
   // A media container
   Audio my_song(input_filename);
 
-  my_song.SaveWavePlotImage(image_filename);
-  my_song.SaveWavePlotLargeThumb(large_thumb_filename);
-  my_song.SaveWavePlotSmallThumb(small_thumb_filename);
-  my_song.SaveWavePlotInfo(info_filename);
+  fputs("WAVEPLOT_START",stdout);
+  my_song.SaveWavePlotImage();
+  fputs("WAVEPLOT_LARGE_THUMB",stdout);
+  my_song.SaveWavePlotLargeThumb();
+  fputs("WAVEPLOT_SMALL_THUMB",stdout);
+  my_song.SaveWavePlotSmallThumb();
+  fputs("WAVEPLOT_INFO",stdout);
+  my_song.SaveWavePlotInfo();
+  fputs("WAVEPLOT_END",stdout);
 
   return 0;
 }

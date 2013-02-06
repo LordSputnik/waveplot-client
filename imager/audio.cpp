@@ -17,7 +17,7 @@
  * along with WavePlot. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Audio.hpp"
+#include "audio.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -103,7 +103,7 @@ Audio::Audio(const char* filename)
   return;
 }
 
-bool Audio::SaveWavePlotImage(const std::string & filename)
+bool Audio::SaveWavePlotImage()
 {
   uint32_t samples_per_chunk = num_channels_ * (sample_rate_ / 4);
   size_t image_border_size = sample_weightings.size();
@@ -193,7 +193,7 @@ bool Audio::SaveWavePlotImage(const std::string & filename)
     std::for_each(centre - image_values[x], centre + image_values[x] + 1, [&] (png_byte* p) {p[x] = 1;}); //Create a bar based on the value at this x.
   }
 
-  if(WritePNG(filename, image_width, HI_RES_IMAGE_HEIGHT, rows.data()) == false) //Write the PNG image.
+  if(WritePNG(image_width, HI_RES_IMAGE_HEIGHT, rows.data()) == false) //Write the PNG image.
     cout << "Exiting Imager: Couldn't open output image." << endl;
 
   //Clean up memory.
@@ -201,18 +201,13 @@ bool Audio::SaveWavePlotImage(const std::string & filename)
     delete p;
 }
 
-bool Audio::WritePNG(const std::string & filename, uint16_t image_width, uint16_t image_height, png_byte** data)
+bool Audio::WritePNG(uint16_t image_width, uint16_t image_height, png_byte** data)
 {
-  FILE *fp = fopen(filename.c_str(),"wb");
-
-  if(fp == nullptr)
-    return false;
-
   png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
   png_infop info_ptr = png_create_info_struct(png_ptr);
 
-  png_init_io(png_ptr, fp);
+  png_init_io(png_ptr, stdout);
 
   png_set_PLTE(png_ptr, info_ptr, palette.data(), PALETTE_SIZE);
 
@@ -224,12 +219,10 @@ bool Audio::WritePNG(const std::string & filename, uint16_t image_width, uint16_
 
   png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_PACKING, NULL);
 
-  fclose(fp);
-
   return true;
 }
 
-bool Audio::SaveWavePlotLargeThumb(const std::string & filename)
+bool Audio::SaveWavePlotLargeThumb()
 {
   double samples_per_chunk = double(samples_.size())/MID_RES_IMAGE_WIDTH;
   double error = 0.0;
@@ -290,7 +283,7 @@ bool Audio::SaveWavePlotLargeThumb(const std::string & filename)
   for(uint16_t x = 0; x != MID_RES_IMAGE_WIDTH; ++x)
     std::for_each(centre - image_values[x], centre + image_values[x] + 1, [&] (png_byte* p) {p[x] = 1;}); //Create a bar based on the value at this x.
 
-  if(WritePNG(filename, MID_RES_IMAGE_WIDTH, MID_RES_IMAGE_HEIGHT, rows.data()) == false) //Write the PNG image.
+  if(WritePNG(MID_RES_IMAGE_WIDTH, MID_RES_IMAGE_HEIGHT, rows.data()) == false) //Write the PNG image.
     cout << "Exiting Imager: Couldn't open output image." << endl;
 
   //Clean up memory.
@@ -298,7 +291,7 @@ bool Audio::SaveWavePlotLargeThumb(const std::string & filename)
     delete p;
 }
 
-bool Audio::SaveWavePlotSmallThumb(const std::string & filename)
+bool Audio::SaveWavePlotSmallThumb()
 {
   double samples_per_chunk = double(samples_.size())/LOW_RES_IMAGE_WIDTH;
   double error = 0.0;
@@ -355,7 +348,7 @@ bool Audio::SaveWavePlotSmallThumb(const std::string & filename)
   for(uint16_t x = 0; x != LOW_RES_IMAGE_WIDTH; ++x)
     std::for_each(centre - image_values[x], centre + image_values[x] + 1, [&] (png_byte* p) {p[x] = 1;}); //Create a bar based on the value at this x.
 
-  if(WritePNG(filename, LOW_RES_IMAGE_WIDTH, LOW_RES_IMAGE_HEIGHT, rows.data()) == false) //Write the PNG image.
+  if(WritePNG(LOW_RES_IMAGE_WIDTH, LOW_RES_IMAGE_HEIGHT, rows.data()) == false) //Write the PNG image.
     cout << "Exiting Imager: Couldn't open output image." << endl;
 
   //Clean up memory.
@@ -363,17 +356,12 @@ bool Audio::SaveWavePlotSmallThumb(const std::string & filename)
     delete p;
 }
 
-bool Audio::SaveWavePlotInfo(const std::string & filename)
+bool Audio::SaveWavePlotInfo()
 {
   //CalculateMixHash();
-  FILE* fp = fopen(filename.c_str(),"w");
 
-  if(fp != nullptr)
-  {
-    fprintf(fp,"%ld|%ld|%s|%u",duration_secs_,duration_trimmed_secs_,format_id.c_str(),num_channels_);
+  fprintf(stdout,"%ld|%ld|%s|%u",duration_secs_,duration_trimmed_secs_,format_id.c_str(),num_channels_);
 
-    fclose(fp);
-  }
 }
 
 /*bool CalculateMixHash()
