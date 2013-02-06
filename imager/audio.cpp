@@ -48,7 +48,7 @@ Audio::Audio(const char* filename)
   int64_t duration = container_->streams[stream_id]->duration;
   AVRational time_base = container_->streams[stream_id]->time_base;
 
-  duration_secs_ = (duration*time_base.num)/time_base.den;
+  duration_secs_ = static_cast<uint32_t>((duration*time_base.num)/time_base.den);
 
   AVCodecContext* codec_context = container_->streams[stream_id]->codec;
 
@@ -56,7 +56,8 @@ Audio::Audio(const char* filename)
   sample_rate_  = codec_context->sample_rate;
   bit_rate_     = codec_context->bit_rate;
 
-
+  printf("Channels: %i, Rate: %i, Bit Rate: %i\n",num_channels_,sample_rate_,bit_rate_);
+  
   size_t samples_reserve_size = num_channels_*sample_rate_*duration_secs_;
 
   samples_.reserve(samples_reserve_size); //Attempt to reserve enough estimated storage space for all of the audio samples.
@@ -97,6 +98,8 @@ Audio::Audio(const char* filename)
     memcpy(&(samples_[insertion_point]),buffer,buffer_size);
   }
 
+  printf("Samples: %lu\n",samples_.size());
+  
   av_close_input_file(container_);
 
   valid_ = true;
@@ -359,8 +362,8 @@ bool Audio::SaveWavePlotSmallThumb()
 bool Audio::SaveWavePlotInfo()
 {
   //CalculateMixHash();
-
-  fprintf(stdout,"%ld|%ld|%s|%u",duration_secs_,duration_trimmed_secs_,format_id.c_str(),num_channels_);
+  
+  fprintf(stdout,"%u|%u|%s|%u",duration_secs_,duration_trimmed_secs_,format_id.c_str(),num_channels_);
 
 }
 

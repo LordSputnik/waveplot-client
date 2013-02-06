@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 
   // A media container
   Audio my_song(input_filename);
-
+  
   fputs("WAVEPLOT_START",stdout);
   my_song.SaveWavePlotImage();
   fputs("WAVEPLOT_LARGE_THUMB",stdout);
@@ -93,6 +93,5 @@ int main(int argc, char* argv[])
   fputs("WAVEPLOT_INFO",stdout);
   my_song.SaveWavePlotInfo();
   fputs("WAVEPLOT_END",stdout);
-
   return 0;
 }

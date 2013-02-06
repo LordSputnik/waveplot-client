@@ -72,8 +72,8 @@ class Audio
   bool WritePNG(uint16_t image_width, uint16_t image_height, png_byte** data);
 
   public:
-    int64_t duration_secs_;
-    int64_t duration_trimmed_secs_;
+    uint32_t duration_secs_;
+    uint32_t duration_trimmed_secs_;
     int num_channels_;
     int samples_per_chunk_;
     std::vector<int16_t> samples_;
