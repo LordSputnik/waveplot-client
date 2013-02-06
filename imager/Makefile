@@ -4,7 +4,7 @@ ODIR = obj
 _OBJS = audio.o main.o
 OBJS = $(patsubst %,$(ODIR)/%,$(_OBJS))
 LINK_OPTS = -L/usr/local/lib -lavformat -lavcodec -lavutil -lpng
-OUT = WavePlotScanner
+OUT = WavePlotImager
 INCLUDE= -I/usr/local/include
 
 all : $(OBJS)
