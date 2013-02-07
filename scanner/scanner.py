@@ -1,4 +1,5 @@
- # Copyright 2013 Ben Ockmore
+#!/usr/bin/env python 
+# Copyright 2013 Ben Ockmore
 
  # This file is part of WavePlot.
 
