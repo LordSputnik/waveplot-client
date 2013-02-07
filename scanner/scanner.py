@@ -63,50 +63,17 @@ for directory, directories, filenames in os.walk("."):
         disc_num = ""
         file_ext = os.path.splitext(filename)[1][1:]
         in_path = os.path.realpath(os.path.join(directory,filename))
-        if file_ext == "mp3":
-            try:
-                audio = mutagen.id3.ID3(in_path)
-            except mutagen.id3.ID3NoHeaderError:
-                pass
-            else:
-                if "UFID:http://musicbrainz.org" in audio:
-                    recording_id = str(audio["UFID:http://musicbrainz.org"].data)
-                if "TXXX:MusicBrainz Album Id" in audio:
-                    release_id = str(audio["TXXX:MusicBrainz Album Id"])
-                if "TRCK" in audio:
-                    track_num = str(audio["TRCK"]).split("/")[0].strip()
-                if "TPOS" in audio:
-                    disc_num = str(audio["TPOS"]).split("/")[0].strip()
-
-        elif file_ext == "flac":
-            try:
-                audio = mutagen.flac.FLAC(in_path)
-            except mutagen.flac.FLACNoHeaderError:
-                pass
-            else:
-                if "MUSICBRAINZ_TRACKID" in audio:
-                    recording_id = str(audio["MUSICBRAINZ_TRACKID"][0])
-                if "MUSICBRAINZ_ALBUMID" in audio:
-                    release_id = str(audio["MUSICBRAINZ_ALBUMID"][0])
-                if "TRACKNUMBER" in audio:
-                    track_num = str(audio["TRACKNUMBER"][0])
-                if "DISCNUMBER" in audio:
-                    disc_num = str(audio["DISCNUMBER"][0])
-
-        elif file_ext == "ogg":
-            try:
-                audio = mutagen.oggvorbis.OggVorbis(in_path)
-            except mutagen.oggvorbis.OggVorbisHeaderError:
-                pass
-            else:
-                if "MUSICBRAINZ_TRACKID" in audio:
-                    recording_id = str(audio["MUSICBRAINZ_TRACKID"][0])
-                if "MUSICBRAINZ_ALBUMID" in audio:
-                    release_id = str(audio["MUSICBRAINZ_ALBUMID"][0])
-                if "TRACKNUMBER" in audio:
-                    track_num = str(audio["TRACKNUMBER"][0])
-                if "DISCNUMBER" in audio:
-                    disc_num = str(audio["DISCNUMBER"][0])
+        print(in_path)
+        audio = mutagen.File(os.path.join(directory,filename),easy=True)
+        if audio:
+            if "musicbrainz_trackid" in audio:
+                recording_id = audio["musicbrainz_trackid"][0]
+            if "musicbrainz_albumid" in audio:
+                release_id = audio["musicbrainz_albumid"][0]
+            if "tracknumber" in audio:
+                track_num = audio["tracknumber"][0].split('/')[0].strip()
+            if "discnumber" in audio:
+                disc_num = audio["discnumber"][0].split('/')[0].strip()
 
         if (recording_id != "") and (release_id != "") and (track_num != "") and (disc_num != ""):
             output = subprocess.check_output([exe_file,in_path,VERSION])
