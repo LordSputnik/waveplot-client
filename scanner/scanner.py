@@ -30,17 +30,15 @@ import tempfile
 VERSION = "BANNANA"
 EDITOR_KEY = ""
 
-exe_file = ""
+exe_file = "WavePlotImager"
 if sys.platform == "win32":
-    exe_file = "WavePlotImager.exe"
-else:
-    exe_file = "WavePlotImager"
+    exe_file += ".exe"
 
 def FindExe():
     global exe_file
     for directory, directories, filenames in os.walk("."):
         for filename in filenames:
-            if filename.startswith("WavePlotImager"):
+            if filename==exe_file:
                 exe_file = os.path.abspath(os.path.join(directory,filename))
                 return
 
