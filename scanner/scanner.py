@@ -60,7 +60,7 @@ print "Using executable: " + exe_file
 
 if EDITOR_KEY == "":
     print ("\nYou can obtain an editor key by registering at {}/register. ".format(SERVER) + "Since this is the first time you've run the script on this computer, please enter your activation key below.\n")
-    EDITOR_KEY = input("Activation Key: ")
+    EDITOR_KEY = str(input("Activation Key: "))
 
     # This updates the stored script when the editor key is entered
     with open(__file__,"r+") as script_file:
@@ -132,7 +132,7 @@ for directory, directories, filenames in os.walk("."):
             if sep == "":
                 raise ValueError
 
-            large_thumbnail, sep, output = output.partition("WAVEPLOT_SMALL")
+            large_thumbnail, sep, output = output.partition("WAVEPLOT_SMALL_THUMB")
             if sep == "":
                 raise ValueError
 
