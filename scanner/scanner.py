@@ -1,20 +1,20 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 # Copyright 2013 Ben Ockmore
 
- # This file is part of WavePlot.
+# This file is part of WavePlot.
 
- # WavePlot is free software: you can redistribute it and/or modify
- # it under the terms of the GNU General Public License as published by
- # the Free Software Foundation, either version 3 of the License, or
- # (at your option) any later version.
+# WavePlot is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 
- # WavePlot is distributed in the hope that it will be useful,
- # but WITHOUT ANY WARRANTY; without even the implied warranty of
- # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- # GNU General Public License for more details.
+# WavePlot is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
- # You should have received a copy of the GNU General Public License
- # along with WavePlot. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with WavePlot. If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess
 import base64
@@ -30,19 +30,28 @@ import tempfile
 VERSION = "BANNANA"
 EDITOR_KEY = ""
 
+def FindExe():
+    global exe_file
+
+    # Get the directory containing the scanner script
+    # Imager should be in the same directory.
+    scanner_dir = os.path.realpath(os.path.dirname(__file__))
+
+    for filename in os.listdir(scanner_dir):
+        if filename == exe_file:
+            exe_file = os.path.realpath(os.path.join(scanner_dir,filename))
+            return
+
+    print "Unable to locate WavePlotImager in script directory - assuming it's in PATH."
+    return
+
+
+
+# --- Main Script --- #
+
 exe_file = "WavePlotImager"
 if sys.platform == "win32":
     exe_file += ".exe"
-
-def FindExe():
-    global exe_file
-    for directory, directories, filenames in os.walk("."):
-        for filename in filenames:
-            if filename==exe_file:
-                exe_file = os.path.abspath(os.path.join(directory,filename))
-                return
-
-dumpdir = os.path.abspath(".")
 
 FindExe()
 
