@@ -61,13 +61,13 @@ int main(int argc, char* argv[])
 #ifndef STANDALONE
   if(argc != 3)
   {
-    printf("Exiting Imager: Wrong number of program parameters: %i (Required 3)\n",argc);
+    fprintf(stderr,"Exiting Imager: Wrong number of program parameters: %i (Required 3)\n",argc);
     return 1;
   }
 
   if(strcmp(version,argv[2]) != 0)
   {
-    printf("Exiting Imager: Scanner-Imager version mismatch! (Scanner says: %s, Imager says: %s)\n",argv[3],version);
+    fprintf(stderr,"Exiting Imager: Scanner-Imager version mismatch! (Scanner says: %s, Imager says: %s)\n",argv[3],version);
     return 1;
   }
 
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 
   // A media container
   Audio my_song(input_filename);
-  
+
   fputs("WAVEPLOT_START",stdout);
   my_song.SaveWavePlotImage();
   fputs("WAVEPLOT_LARGE_THUMB",stdout);

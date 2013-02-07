@@ -56,8 +56,6 @@ Audio::Audio(const char* filename)
   sample_rate_  = codec_context->sample_rate;
   bit_rate_     = codec_context->bit_rate;
 
-  printf("Channels: %i, Rate: %i, Bit Rate: %i\n",num_channels_,sample_rate_,bit_rate_);
-  
   size_t samples_reserve_size = num_channels_*sample_rate_*duration_secs_;
 
   samples_.reserve(samples_reserve_size); //Attempt to reserve enough estimated storage space for all of the audio samples.
@@ -71,8 +69,6 @@ Audio::Audio(const char* filename)
   sstr << codec->name << "-" << bit_rate_;
 
   format_id = sstr.str();
-
-  cout << format_id << endl;
 
   if (!avcodec_open(codec_context, codec) < 0)
     return;
@@ -98,8 +94,8 @@ Audio::Audio(const char* filename)
     memcpy(&(samples_[insertion_point]),buffer,buffer_size);
   }
 
-  printf("Samples: %lu\n",samples_.size());
-  
+  fprintf(stderr,"Samples: %lu\n",samples_.size());
+
   av_close_input_file(container_);
 
   valid_ = true;
@@ -197,7 +193,7 @@ bool Audio::SaveWavePlotImage()
   }
 
   if(WritePNG(image_width, HI_RES_IMAGE_HEIGHT, rows.data()) == false) //Write the PNG image.
-    cout << "Exiting Imager: Couldn't open output image." << endl;
+    fputs("Exiting Imager: Couldn't open output image.\n",stderr);
 
   //Clean up memory.
   for(png_byte* p : rows)
@@ -229,8 +225,6 @@ bool Audio::SaveWavePlotLargeThumb()
 {
   double samples_per_chunk = double(samples_.size())/MID_RES_IMAGE_WIDTH;
   double error = 0.0;
-
-  cout << samples_per_chunk << endl;
 
   size_t image_border_size = thumb_sample_weightings.size();
 
@@ -287,7 +281,7 @@ bool Audio::SaveWavePlotLargeThumb()
     std::for_each(centre - image_values[x], centre + image_values[x] + 1, [&] (png_byte* p) {p[x] = 1;}); //Create a bar based on the value at this x.
 
   if(WritePNG(MID_RES_IMAGE_WIDTH, MID_RES_IMAGE_HEIGHT, rows.data()) == false) //Write the PNG image.
-    cout << "Exiting Imager: Couldn't open output image." << endl;
+    fputs("Exiting Imager: Couldn't open output image.\n",stderr);
 
   //Clean up memory.
   for(png_byte* p : rows)
@@ -298,8 +292,6 @@ bool Audio::SaveWavePlotSmallThumb()
 {
   double samples_per_chunk = double(samples_.size())/LOW_RES_IMAGE_WIDTH;
   double error = 0.0;
-
-  cout << samples_per_chunk << endl;
 
   size_t image_border_size = sample_weightings.size();
 
@@ -352,7 +344,7 @@ bool Audio::SaveWavePlotSmallThumb()
     std::for_each(centre - image_values[x], centre + image_values[x] + 1, [&] (png_byte* p) {p[x] = 1;}); //Create a bar based on the value at this x.
 
   if(WritePNG(LOW_RES_IMAGE_WIDTH, LOW_RES_IMAGE_HEIGHT, rows.data()) == false) //Write the PNG image.
-    cout << "Exiting Imager: Couldn't open output image." << endl;
+    fputs("Exiting Imager: Couldn't open output image.\n",stderr);
 
   //Clean up memory.
   for(png_byte* p : rows)
@@ -362,7 +354,7 @@ bool Audio::SaveWavePlotSmallThumb()
 bool Audio::SaveWavePlotInfo()
 {
   //CalculateMixHash();
-  
+
   fprintf(stdout,"%u|%u|%s|%u",duration_secs_,duration_trimmed_secs_,format_id.c_str(),num_channels_);
 
 }
