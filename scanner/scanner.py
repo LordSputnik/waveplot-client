@@ -63,7 +63,6 @@ for directory, directories, filenames in os.walk("."):
         disc_num = ""
         file_ext = os.path.splitext(filename)[1][1:]
         in_path = os.path.realpath(os.path.join(directory,filename))
-        print(in_path)
         audio = mutagen.File(os.path.join(directory,filename),easy=True)
         if audio:
             if "musicbrainz_trackid" in audio:
