@@ -29,6 +29,7 @@ import tempfile
 
 VERSION = "BANNANA"
 EDITOR_KEY = ""
+SERVER = "http://pi.ockmore.net:19048"
 
 def FindExe():
     global exe_file
@@ -58,9 +59,16 @@ FindExe()
 print "Using executable: " + exe_file
 
 if EDITOR_KEY == "":
-    EDITOR_KEY = input("\nPlease enter your activation key below:\n")
-    print "To avoid doing this in future, open up your scanner.py file and find the line starting EDITOR_KEY. Put your key between the quote marks!\n"
+    print ("\nYou can obtain an editor key by registering at {}/register. ".format(SERVER) + "Since this is the first time you've run the script on this computer, please enter your activation key below.\n")
+    EDITOR_KEY = input("Activation Key: ")
 
+    # This updates the stored script when the editor key is entered
+    with open(__file__,"r+") as script_file:
+        script_str = script_file.read()
+        editor_key_pos = script_str.rfind("EDITOR_KEY = \"") + len("EDITOR_KEY = \"")
+        script_str = script_str[:editor_key_pos] + EDITOR_KEY + script_str[editor_key_pos:]
+        script_file.seek(0,0)
+        script_file.write(script_str)
 
 for directory, directories, filenames in os.walk("."):
     for filename in filenames:
@@ -144,7 +152,7 @@ for directory, directories, filenames in os.walk("."):
 
             length, trimmed, sourcetype, num_channels = info.split("|")
 
-            url = 'http://pi.ockmore.net:19048/submit'
+            url = SERVER+'/submit'
 
             values = {'recording' : recording_id,
                       'release' : release_id,
