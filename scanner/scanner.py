@@ -70,6 +70,8 @@ if EDITOR_KEY == "":
         script_file.seek(0,0)
         script_file.write(script_str)
 
+print "\nFinding files to scan...\n"
+
 for directory, directories, filenames in os.walk("."):
     for filename in filenames:
         recording_id = ""
