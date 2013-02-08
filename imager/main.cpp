@@ -40,9 +40,16 @@ extern "C"
 
   #define PNG_DEBUG 3
   #include <png.h>
+  
+  #ifdef WIN32
+    #include <fcntl.h>
+    #include <io.h>
+  #endif
 }
 
 #include "audio.hpp"
+
+//#define STANDALONE
 
 void die(const char* message)
 {
@@ -56,8 +63,6 @@ const char* version = "BANNANA";
 
 int main(int argc, char* argv[])
 {
-
-//#define STANDALONE
 #ifndef STANDALONE
   if(argc != 3)
   {
@@ -76,6 +81,14 @@ int main(int argc, char* argv[])
   char* input_filename = "test-break.flac";
 #endif
 
+#ifdef WIN32
+  fprintf(stderr,"Setting stdout to binary mode!");
+  if(_setmode(1, O_BINARY) == -1)
+  {
+    puts("Failed to do so.");
+    return 10;
+  }
+#endif
 
   // This call is necessarily done once in your app to initialize
   // libavformat to register all the muxers, demuxers and protocols.
