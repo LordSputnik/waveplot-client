@@ -72,7 +72,7 @@ if EDITOR_KEY == "":
 
 print "\nFinding files to scan...\n"
 
-for directory, directories, filenames in os.walk("."):
+for directory, directories, filenames in os.walk(u"."):
     for filename in filenames:
         recording_id = ""
         release_id = ""
@@ -106,53 +106,59 @@ for directory, directories, filenames in os.walk("."):
             the_page = response.read()
 
             if the_page == "0":
-                output = subprocess.check_output([exe_file,in_path,VERSION])
+                try:
+                    in_path_enc = in_path.encode("ascii",'strict')
+                except UnicodeError:
+                    print "Non-ascii encodings not yet supported!"
+                    pass
+                else:
+                    output = subprocess.check_output([exe_file,in_path_enc,VERSION])
 
-                output = output.partition("WAVEPLOT_START")[2]
+                    output = output.partition("WAVEPLOT_START")[2]
 
-                image_data, sep, output = output.partition("WAVEPLOT_LARGE_THUMB")
-                if sep == "":
-                    raise ValueError
+                    image_data, sep, output = output.partition("WAVEPLOT_LARGE_THUMB")
+                    if sep == "":
+                        raise ValueError
 
-                large_thumbnail, sep, output = output.partition("WAVEPLOT_SMALL_THUMB")
-                if sep == "":
-                    raise ValueError
+                    large_thumbnail, sep, output = output.partition("WAVEPLOT_SMALL_THUMB")
+                    if sep == "":
+                        raise ValueError
 
-                small_thumbnail, sep, output = output.partition("WAVEPLOT_INFO")
-                if sep == "":
-                    raise ValueError
+                    small_thumbnail, sep, output = output.partition("WAVEPLOT_INFO")
+                    if sep == "":
+                        raise ValueError
 
-                info, sep, output = output.partition("WAVEPLOT_END")
-                if sep == "":
-                    raise ValueError
+                    info, sep, output = output.partition("WAVEPLOT_END")
+                    if sep == "":
+                        raise ValueError
 
-                image_data = base64.b64encode(image_data)
+                    image_data = base64.b64encode(image_data)
 
-                large_thumbnail = base64.b64encode(large_thumbnail)
+                    large_thumbnail = base64.b64encode(large_thumbnail)
 
-                small_thumbnail = base64.b64encode(small_thumbnail)
+                    small_thumbnail = base64.b64encode(small_thumbnail)
 
-                length, trimmed, sourcetype, num_channels = info.split("|")
+                    length, trimmed, sourcetype, num_channels = info.split("|")
 
-                url = SERVER+'/submit'
+                    url = SERVER+'/submit'
 
-                values = {'recording' : recording_id,
-                          'release' : release_id,
-                          'track' : track_num,
-                          'disc' : disc_num,
-                          'image' : image_data,
-                          'large_thumb' : large_thumbnail,
-                          'small thumb' : small_thumbnail,
-                          'editor' : EDITOR_KEY,
-                          'length' : length,
-                          'trimmed' : trimmed,
-                          'source' : sourcetype,
-                          'num_channels': num_channels,
-                          'version' : VERSION }
+                    values = {'recording' : recording_id,
+                              'release' : release_id,
+                              'track' : track_num,
+                              'disc' : disc_num,
+                              'image' : image_data,
+                              'large_thumb' : large_thumbnail,
+                              'small thumb' : small_thumbnail,
+                              'editor' : EDITOR_KEY,
+                              'length' : length,
+                              'trimmed' : trimmed,
+                              'source' : sourcetype,
+                              'num_channels': num_channels,
+                              'version' : VERSION }
 
-                data = urllib.urlencode(values)
-                req = urllib2.Request(url, data)
-                response = urllib2.urlopen(req)
-                the_page = response.read()
+                    data = urllib.urlencode(values)
+                    req = urllib2.Request(url, data)
+                    response = urllib2.urlopen(req)
+                    the_page = response.read()
 
-                print the_page
+                    print the_page
