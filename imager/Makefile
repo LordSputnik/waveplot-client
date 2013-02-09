@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -std=c++11 -c
+CFLAGS = -std=c++11 -c -O2
 ODIR = obj
 _OBJS = audio.o main.o
 OBJS = $(patsubst %,$(ODIR)/%,$(_OBJS))
@@ -11,7 +11,7 @@ all : $(OBJS)
 	$(CC) $(OBJS) -o $(OUT) $(LINK_OPTS)
 
 $(ODIR)/%.o : %.cpp $(ODIR)
-	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $<
+	$(CC) $(CFLAGS) $(INCLUDE) -o $@ $<
 
 $(ODIR):
 	mkdir $(ODIR)
