@@ -57,7 +57,6 @@ class Audio
   Audio & operator = (const Audio & other){ return *this; };
 
   bool valid_ = false;
-  AVFormatContext* container_ = nullptr;
 
   int sample_rate_;
   int bit_rate_;

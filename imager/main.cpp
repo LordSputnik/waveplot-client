@@ -40,7 +40,7 @@ extern "C"
 
   #define PNG_DEBUG 3
   #include <png.h>
-  
+
   #ifdef WIN32
     #include <fcntl.h>
     #include <io.h>
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 
   char* input_filename = argv[1];
 #else
-  char* input_filename = "test-break.flac";
+  char* input_filename = "test.flac";
 #endif
 
 #ifdef WIN32

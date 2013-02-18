@@ -29,36 +29,47 @@ array<png_color,4> palette = {{{0x00, 0x00, 0x00}, {0x73, 0x6D, 0xAB}, {0xFF,0xB
 
 Audio::Audio(const char* filename)
 {
-  if(avformat_open_input(&container_, filename, NULL, NULL) < 0)
+  AVFormatContext* format_context = nullptr;
+
+  if(avformat_open_input(&format_context, filename, nullptr, nullptr) < 0)
     return;
 
-  if(av_find_stream_info(container_) < 0)
+  format_context->max_analyze_duration = 20000000; //Increase this here, to reduce frequency of libav warnings in the next call.
+
+  if(avformat_find_stream_info(format_context, nullptr) < 0)
     return;
 
-  int stream_id = -1;
-  for (int i = 0; ((i < container_->nb_streams) && (stream_id < 0)); i++)
+  AVStream* stream = nullptr;
+
+  for (uint32_t i = 0; i != format_context->nb_streams; ++i)
   {
-    if (container_->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
-      stream_id = i;
+    if(format_context->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+    {
+      stream = format_context->streams[i];
+      break;
+    }
   }
 
-  if (stream_id == -1)
+  if(stream == nullptr)
     return;
 
-  int64_t duration = container_->streams[stream_id]->duration;
-  AVRational time_base = container_->streams[stream_id]->time_base;
+  //Calculate the duration of the stream, in seconds, using the timebase and
+  AVRational time_base = stream->time_base;
+  duration_secs_ = static_cast<uint32_t>((stream->duration * time_base.num) / time_base.den);
 
-  duration_secs_ = static_cast<uint32_t>((duration*time_base.num)/time_base.den);
 
-  AVCodecContext* codec_context = container_->streams[stream_id]->codec;
+  AVCodecContext* codec_context = stream->codec;
 
   num_channels_ = codec_context->channels;
   sample_rate_  = codec_context->sample_rate;
   bit_rate_     = codec_context->bit_rate;
 
-  size_t samples_reserve_size = num_channels_*sample_rate_*duration_secs_;
+#ifdef DEBUG
+  fprintf(stderr, "Num Channels: %i Sample Rate: %i Bit Rate: %i\n", num_channels_, sample_rate_, bit_rate_);
+#endif
 
-  samples_.reserve(samples_reserve_size); //Attempt to reserve enough estimated storage space for all of the audio samples.
+  //Reserve an estimated amount of storage space for all of the audio samples.
+  samples_.reserve(num_channels_*sample_rate_*duration_secs_);
 
   //Create chunk size independent of sample rate or number of channels - constant for given song time.
 
@@ -70,10 +81,11 @@ Audio::Audio(const char* filename)
 
   format_id = sstr.str();
 
-  if (!avcodec_open(codec_context, codec) < 0)
+  if (!avcodec_open2(codec_context, codec, nullptr) < 0)
     return;
 
   AVPacket packet;
+  AVFrame* frame = avcodec_alloc_frame();
   int16_t buffer[AVCODEC_MAX_AUDIO_FRAME_SIZE/2];
 
   while (1)
@@ -81,10 +93,11 @@ Audio::Audio(const char* filename)
     int buffer_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 
     // Read one packet into `packet`
-    if (av_read_frame(container_, &packet) < 0)
+    if (av_read_frame(format_context, &packet) < 0)
       break;  // End of stream. Done decoding.
 
     // Decodes from `packet` into the buffer
+    //avcodec_decode_audio4(codec_context, )
     if (avcodec_decode_audio3(codec_context, buffer, &buffer_size, &packet) < 1)
       break;  // Error in decoding
 
@@ -92,11 +105,19 @@ Audio::Audio(const char* filename)
     samples_.resize(insertion_point+(buffer_size/2),0);
 
     memcpy(&(samples_[insertion_point]),buffer,buffer_size);
+
+    //Reset the frame to a clean state before reuse.
+    avcodec_get_frame_defaults(frame);
   }
 
-  fprintf(stderr,"Samples: %lu\n",samples_.size());
+  //No freeing for now - will fix when I've got the latest libav. For now, this is a tiny leak.
+  //avcodec_free_frame(&frame);
 
-  av_close_input_file(container_);
+#ifdef DEBUG
+  fprintf(stderr,"Samples: %lu\n",samples_.size());
+#endif
+
+  avformat_close_input(&format_context);
 
   valid_ = true;
   return;
