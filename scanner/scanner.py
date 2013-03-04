@@ -26,10 +26,12 @@ import mutagen.oggvorbis
 import os
 import sys
 import tempfile
+import time
 
 VERSION = "BANNANA"
 EDITOR_KEY = ""
 SERVER = "http://pi.ockmore.net:19048"
+MAX_HTTP_ATTEMPTS = 3
 
 def FindExe():
     global exe_file
@@ -46,7 +48,20 @@ def FindExe():
     print "Unable to locate WavePlotImager in script directory - assuming it's in PATH."
     return
 
+def WavePlotPost(url, values):
+    attempts = 0
+    while attempts < MAX_HTTP_ATTEMPTS:
+        post_data = urllib.urlencode(values)
+        req = urllib2.Request(url, post_data)
+        try:
+            response = urllib2.urlopen(req)
+        except urllib2.URLError:
+            attempts += 1
+            time.sleep(0.5)
+        else:
+            return response.read()
 
+    return None
 
 # --- Main Script --- #
 
@@ -100,65 +115,64 @@ for directory, directories, filenames in os.walk(u"."):
                       'disc' : disc_num
                       }
 
-            data = urllib.urlencode(values)
-            req = urllib2.Request(url, data)
-            response = urllib2.urlopen(req)
-            the_page = response.read()
+            the_page = WavePlotPost(url,values)
 
             if the_page == "0":
                 try:
-                    in_path_enc = in_path.encode("ascii",'strict')
+                    in_path_enc = in_path.encode('UTF-8','strict')
                 except UnicodeError:
-                    print "Non-ascii encodings not yet supported!"
+                    print "Filename couldn't be encoded to UTF-8! You have a really strange collection!"
                     pass
                 else:
-                    output = subprocess.check_output([exe_file,in_path_enc,VERSION])
+                    print "File:" + in_path.encode('ascii','replace')
+                    
+                    try:
+                        output = subprocess.check_output([exe_file,in_path_enc,VERSION])
+                    except subprocess.CalledProcessError:
+                        print "Imager Error - Skipped File."
+                    else:
+                        output = output.partition("WAVEPLOT_START")[2]
 
-                    output = output.partition("WAVEPLOT_START")[2]
+                        image_data, sep, output = output.partition("WAVEPLOT_LARGE_THUMB")
+                        if sep == "":
+                          raise ValueError
 
-                    image_data, sep, output = output.partition("WAVEPLOT_LARGE_THUMB")
-                    if sep == "":
-                        raise ValueError
+                        large_thumbnail, sep, output = output.partition("WAVEPLOT_SMALL_THUMB")
+                        if sep == "":
+                          raise ValueError
 
-                    large_thumbnail, sep, output = output.partition("WAVEPLOT_SMALL_THUMB")
-                    if sep == "":
-                        raise ValueError
+                        small_thumbnail, sep, output = output.partition("WAVEPLOT_INFO")
+                        if sep == "":
+                          raise ValueError
 
-                    small_thumbnail, sep, output = output.partition("WAVEPLOT_INFO")
-                    if sep == "":
-                        raise ValueError
+                        info, sep, output = output.partition("WAVEPLOT_END")
+                        if sep == "":
+                          raise ValueError
 
-                    info, sep, output = output.partition("WAVEPLOT_END")
-                    if sep == "":
-                        raise ValueError
+                        image_data = base64.b64encode(image_data)
 
-                    image_data = base64.b64encode(image_data)
+                        large_thumbnail = base64.b64encode(large_thumbnail)
 
-                    large_thumbnail = base64.b64encode(large_thumbnail)
+                        small_thumbnail = base64.b64encode(small_thumbnail)
 
-                    small_thumbnail = base64.b64encode(small_thumbnail)
+                        length, trimmed, sourcetype, num_channels = info.split("|")
 
-                    length, trimmed, sourcetype, num_channels = info.split("|")
+                        url = SERVER+'/submit'
 
-                    url = SERVER+'/submit'
+                        values = {'recording' : recording_id,
+                                  'release' : release_id,
+                                  'track' : track_num,
+                                  'disc' : disc_num,
+                                  'image' : image_data,
+                                  'large_thumb' : large_thumbnail,
+                                  'small thumb' : small_thumbnail,
+                                  'editor' : EDITOR_KEY,
+                                  'length' : length,
+                                  'trimmed' : trimmed,
+                                  'source' : sourcetype,
+                                  'num_channels': num_channels,
+                                  'version' : VERSION }
 
-                    values = {'recording' : recording_id,
-                              'release' : release_id,
-                              'track' : track_num,
-                              'disc' : disc_num,
-                              'image' : image_data,
-                              'large_thumb' : large_thumbnail,
-                              'small thumb' : small_thumbnail,
-                              'editor' : EDITOR_KEY,
-                              'length' : length,
-                              'trimmed' : trimmed,
-                              'source' : sourcetype,
-                              'num_channels': num_channels,
-                              'version' : VERSION }
+                        the_page = WavePlotPost(url,values)
 
-                    data = urllib.urlencode(values)
-                    req = urllib2.Request(url, data)
-                    response = urllib2.urlopen(req)
-                    the_page = response.read()
-
-                    print the_page
+                        print the_page
