@@ -33,6 +33,8 @@ EDITOR_KEY = ""
 SERVER = "http://pi.ockmore.net:19048"
 MAX_HTTP_ATTEMPTS = 3
 
+LAST_RUN = u"2013-03-07 08:42:43"
+
 def FindExe():
     global exe_file
 
