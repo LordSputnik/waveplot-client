@@ -27,11 +27,91 @@ import os
 import sys
 import tempfile
 import time
+import datetime
 
-VERSION = "BANNANA"
-EDITOR_KEY = ""
-SERVER = "http://pi.ockmore.net:19048"
 MAX_HTTP_ATTEMPTS = 3
+
+VERSION = u"BANNANA"
+EDITOR_KEY = u""
+SERVER = u"http://pi.ockmore.net:19048"
+
+LAST_RUN = u"2013-03-08 12:35:00"
+REMOTE_URL = u"https://raw.github.com/LordSputnik/waveplot-client"
+UPDATE_BRANCH = u"alpha"
+
+update_applied = False
+
+def GetScriptConfigValue(script_str, key):
+    find_str = key + " = u\""
+    start = script_str.find(find_str)
+
+    if start == -1:
+        return None
+
+    start += len(find_str)
+    end = script_str.find("\"",start)
+
+    return script_str[start:end]
+
+def SetScriptConfigValue(script_str, key, value):
+    find_str = key + " = u\""
+    start = script_str.find(find_str)
+
+    if start == -1:
+        return None
+
+    start += len(find_str)
+    end = script_str.find("\"",start)
+
+    return script_str[:start]+value+script_str[end:]
+
+
+def AutoUpdate():
+    remote_script = urllib2.urlopen(u"{}/{}/{}".format(REMOTE_URL,UPDATE_BRANCH,u"scanner/scanner.py")).read()
+
+    remote_last_run = GetScriptConfigValue(remote_script,"LAST_RUN")
+
+    if remote_last_run is None:
+        return
+
+    remote_last_run = datetime.datetime.strptime(remote_last_run,"%Y-%m-%d %H:%M:%S")
+
+    local_last_run = datetime.datetime.strptime(LAST_RUN,"%Y-%m-%d %H:%M:%S")
+
+    if local_last_run < remote_last_run:
+        update_now = ""
+        while (update_now != "y") and (update_now != "n"):
+            update_now = raw_input("Update ready! ({}) Apply? (y/n) ".format(remote_last_run))
+
+        if update_now == "y":
+            print "Updating! Please wait..."
+            update_applied = True
+
+            remote_script = SetScriptConfigValue(remote_script,"EDITOR_KEY",EDITOR_KEY)
+
+            if remote_script is None:
+                return
+
+            with open(__file__, "w") as local_script:
+                local_script.write(remote_script)
+
+    return
+
+def WriteEditorKey():
+    with open(__file__,"r+") as script_file:
+        script_str = script_file.read()
+        script_str = SetScriptConfigValue(script_str,"EDITOR_KEY",EDITOR_KEY)
+        script_file.seek(0,0)
+        script_file.write(script_str)
+
+def WriteLastRun():
+    with open(__file__,"r+") as script_file:
+        LAST_RUN = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+        script_str = script_file.read()
+        script_str = SetScriptConfigValue(script_str,"LAST_RUN",LAST_RUN)
+        script_file.seek(0,0)
+        script_file.write(script_str)
 
 def FindExe():
     global exe_file
@@ -69,6 +149,8 @@ exe_file = "WavePlotImager"
 if sys.platform == "win32":
     exe_file += ".exe"
 
+AutoUpdate()
+
 FindExe()
 
 print "Using executable: " + exe_file
@@ -78,12 +160,7 @@ if EDITOR_KEY == "":
     EDITOR_KEY = str(input("Activation Key: "))
 
     # This updates the stored script when the editor key is entered
-    with open(__file__,"r+") as script_file:
-        script_str = script_file.read()
-        editor_key_pos = script_str.rfind("EDITOR_KEY = \"") + len("EDITOR_KEY = \"")
-        script_str = script_str[:editor_key_pos] + EDITOR_KEY + script_str[editor_key_pos:]
-        script_file.seek(0,0)
-        script_file.write(script_str)
+    WriteEditorKey()
 
 print "\nFinding files to scan...\n"
 
@@ -125,7 +202,7 @@ for directory, directories, filenames in os.walk(u"."):
                     pass
                 else:
                     print "File:" + in_path.encode('ascii','replace')
-                    
+
                     try:
                         output = subprocess.check_output([exe_file,in_path_enc,VERSION])
                     except subprocess.CalledProcessError:
@@ -176,3 +253,6 @@ for directory, directories, filenames in os.walk(u"."):
                         the_page = WavePlotPost(url,values)
 
                         print the_page
+
+if update_applied:
+    WriteLastRun()
