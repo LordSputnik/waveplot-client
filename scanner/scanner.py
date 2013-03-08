@@ -199,7 +199,6 @@ for directory, directories, filenames in os.walk(u"."):
                     in_path_enc = in_path.encode('UTF-8','strict')
                 except UnicodeError:
                     print "Filename couldn't be encoded to UTF-8! You have a really strange collection!"
-                    pass
                 else:
                     print "File:" + in_path.encode('ascii','replace')
 
