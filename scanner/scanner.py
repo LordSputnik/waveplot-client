@@ -35,7 +35,7 @@ VERSION = u"BANNANA"
 EDITOR_KEY = u""
 SERVER = u"http://pi.ockmore.net:19048"
 
-LAST_RUN = u"2013-03-08 12:35:00"
+LAST_RUN = u"2013-03-08 12:44:27"
 REMOTE_URL = u"https://raw.github.com/LordSputnik/waveplot-client"
 UPDATE_BRANCH = u"alpha"
 
@@ -67,6 +67,7 @@ def SetScriptConfigValue(script_str, key, value):
 
 
 def AutoUpdate():
+    global update_applied
     remote_script = urllib2.urlopen(u"{}/{}/{}".format(REMOTE_URL,UPDATE_BRANCH,u"scanner/scanner.py")).read()
 
     remote_last_run = GetScriptConfigValue(remote_script,"LAST_RUN")
