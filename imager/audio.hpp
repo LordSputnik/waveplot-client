@@ -35,6 +35,7 @@ extern "C"
   #include <libavcodec/avcodec.h>
   #include <libavformat/avformat.h>
   #include <libavutil/avutil.h>
+  #include <libavutil/channel_layout.h>
 
 #define PNG_DEBUG 3
   #include <png.h>
@@ -51,12 +52,15 @@ extern "C"
 #define PALETTE_SIZE 4
 #define PALETTE_NUM_BITS 2
 
+namespace Audio
+{
+  void Process(const char* filename);
+}
+
+/*
+
 class Audio
 {
-  Audio(const Audio & other){};
-  Audio & operator = (const Audio & other){ return *this; };
-
-  bool valid_ = false;
 
   int sample_rate_;
   int bit_rate_;
@@ -70,19 +74,23 @@ class Audio
 
   bool WritePNG(uint16_t image_width, uint16_t image_height, png_byte** data);
 
+  double ProcessInterlacedBufferData(double* dest, uint8_t* src, int required_storage);
+  double ProcessPlanarBufferData(double* dest, uint8_t** src, int required_storage);
+
   public:
     uint32_t duration_secs_;
     uint32_t duration_trimmed_secs_;
     int num_channels_;
     int samples_per_chunk_;
-    std::vector<int16_t> samples_;
+    AVSampleFormat sample_format_;
+    std::vector<double> samples_;
     Audio(const char* filename);
 
     bool SaveWavePlotImage();
     bool SaveWavePlotLargeThumb();
     bool SaveWavePlotSmallThumb();
     bool SaveWavePlotInfo();
-};
+};*/
 
 #endif // _WAVEPLOT_AUDIO_HPP_
 

@@ -49,7 +49,7 @@ extern "C"
 
 #include "audio.hpp"
 
-//#define STANDALONE
+#define STANDALONE
 
 void die(const char* message)
 {
@@ -57,13 +57,11 @@ void die(const char* message)
   exit(1);
 }
 
-array<double,4> sample_weightings {10.0,8.0,5.0,3.0}; //Symmetrical... eg. {10,7} => 7,10,7
-
 const char* version = "BANNANA";
 
+#ifndef STANDALONE
 int main(int argc, char* argv[])
 {
-#ifndef STANDALONE
   if(argc != 3)
   {
     fprintf(stderr,"Exiting Imager: Wrong number of program parameters: %i (Required 3)\n",argc);
@@ -78,7 +76,9 @@ int main(int argc, char* argv[])
 
   char* input_filename = argv[1];
 #else
-  char* input_filename = "test.flac";
+int main()
+{
+  char input_filename[] = "dr_test_9.flac";
 #endif
 
 #ifdef WIN32
@@ -95,16 +95,21 @@ int main(int argc, char* argv[])
   av_register_all();
 
   // A media container
-  Audio my_song(input_filename);
+  //Audio my_song(input_filename);
+  if(freopen("image.png","wb",stdout) == NULL)
+    return 1;
 
-  fputs("WAVEPLOT_START",stdout);
-  my_song.SaveWavePlotImage();
-  fputs("WAVEPLOT_LARGE_THUMB",stdout);
-  my_song.SaveWavePlotLargeThumb();
-  fputs("WAVEPLOT_SMALL_THUMB",stdout);
-  my_song.SaveWavePlotSmallThumb();
-  fputs("WAVEPLOT_INFO",stdout);
-  my_song.SaveWavePlotInfo();
-  fputs("WAVEPLOT_END",stdout);
+  Audio::Process(input_filename);
+
+  //fputs("WAVEPLOT_START",stdout);
+
+  //my_song.SaveWavePlotImage();
+  //fputs("WAVEPLOT_LARGE_THUMB",stdout);
+  //my_song.SaveWavePlotLargeThumb();
+  //fputs("WAVEPLOT_SMALL_THUMB",stdout);
+  //my_song.SaveWavePlotSmallThumb();
+  //fputs("WAVEPLOT_INFO",stdout);
+  //my_song.SaveWavePlotInfo();
+  //fputs("WAVEPLOT_END",stdout);
   return 0;
 }
