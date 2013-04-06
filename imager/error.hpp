@@ -1,20 +1,20 @@
 /*
  * Copyright 2013 Ben Ockmore
  *
- * This file is part of WavePlot.
+ * This file is part of WavePlot Imager.
 
- * WavePlot is free software: you can redistribute it and/or modify
+ * WavePlot Imager is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
 
- * WavePlot is distributed in the hope that it will be useful,
+ * WavePlot Imager is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with WavePlot. If not, see <http://www.gnu.org/licenses/>.
+ * along with WavePlot Imager. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _WAVEPLOT_ERROR_HPP_
@@ -27,7 +27,6 @@ enum
   ERROR_UNKNOWN = 1,
 
   ERROR_NO_AUDIO_STREAM,
-  ERROR_AUDIO_TOO_LONG,
   ERROR_BAD_SAMPLE_FORMAT,
   ERROR_NO_SAMPLES,
 

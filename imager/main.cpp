@@ -1,31 +1,23 @@
 /*
  * Copyright 2013 Ben Ockmore
  *
- * This file is part of WavePlot.
+ * This file is part of WavePlot Imager.
 
- * WavePlot is free software: you can redistribute it and/or modify
+ * WavePlot Imager is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
 
- * WavePlot is distributed in the hope that it will be useful,
+ * WavePlot Imager is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with WavePlot. If not, see <http://www.gnu.org/licenses/>.
+ * along with WavePlot Imager. If not, see <http://www.gnu.org/licenses/>.
  */
 
-using namespace std;
-
 #include <cstdio>
-#include <cmath>
-
-#include <iostream>
-#include <vector>
-#include <string>
-#include <array>
 
 extern "C"
 {
@@ -38,9 +30,6 @@ extern "C"
   #include <libavformat/avformat.h>
   #include <libavutil/avutil.h>
 
-  #define PNG_DEBUG 3
-  #include <png.h>
-
   #ifdef WIN32
     #include <fcntl.h>
     #include <io.h>
@@ -48,6 +37,8 @@ extern "C"
 }
 
 #include "audio.hpp"
+
+using namespace std;
 
 #define STANDALONE
 
@@ -57,7 +48,7 @@ void die(const char* message)
   exit(1);
 }
 
-const char* version = "BANNANA";
+const char* version = "CITRUS";
 
 #ifndef STANDALONE
 int main(int argc, char* argv[])
@@ -78,7 +69,7 @@ int main(int argc, char* argv[])
 #else
 int main()
 {
-  char input_filename[] = "dr_test_9.flac";
+  char input_filename[] = "test3.mp3";
 #endif
 
 #ifdef WIN32
@@ -94,22 +85,7 @@ int main()
   // libavformat to register all the muxers, demuxers and protocols.
   av_register_all();
 
-  // A media container
-  //Audio my_song(input_filename);
-  if(freopen("image.png","wb",stdout) == NULL)
-    return 1;
-
   Audio::Process(input_filename);
 
-  //fputs("WAVEPLOT_START",stdout);
-
-  //my_song.SaveWavePlotImage();
-  //fputs("WAVEPLOT_LARGE_THUMB",stdout);
-  //my_song.SaveWavePlotLargeThumb();
-  //fputs("WAVEPLOT_SMALL_THUMB",stdout);
-  //my_song.SaveWavePlotSmallThumb();
-  //fputs("WAVEPLOT_INFO",stdout);
-  //my_song.SaveWavePlotInfo();
-  //fputs("WAVEPLOT_END",stdout);
   return 0;
 }
