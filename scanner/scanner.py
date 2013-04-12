@@ -204,7 +204,7 @@ for directory, directories, filenames in os.walk(u"."):
                     print "File:" + in_path.encode('ascii','replace')
 
                     try:
-                        output = subprocess.check_output([exe_file,in_path_enc,VERSION])
+                        output = subprocess.check_output([exe_file.encode("UTF-8"),in_path_enc,VERSION.encode("UTF-8")])
                     except subprocess.CalledProcessError:
                         print "Imager Error - Skipped File."
                     else:
