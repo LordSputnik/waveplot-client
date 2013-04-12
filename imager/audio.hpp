@@ -27,10 +27,10 @@ extern "C"
     #define UINT64_C(c) (c ## ULL)
   #endif
 
-  #include <libavcodec/avcodec.h>
-  #include <libavformat/avformat.h>
-  #include <libavutil/avutil.h>
-  #include <libavutil/channel_layout.h>
+  #include "libavcodec/avcodec.h"
+  #include "libavformat/avformat.h"
+  #include "libavutil/avutil.h"
+  #include "libavutil/channel_layout.h"
 }
 
 namespace Audio

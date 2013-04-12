@@ -26,9 +26,9 @@ extern "C"
     #define UINT64_C(c) (c ## ULL)
   #endif
 
-  #include <libavcodec/avcodec.h>
-  #include <libavformat/avformat.h>
-  #include <libavutil/avutil.h>
+  #include "libavcodec/avcodec.h"
+  #include "libavformat/avformat.h"
+  #include "libavutil/avutil.h"
 
   #ifdef WIN32
     #include <fcntl.h>
