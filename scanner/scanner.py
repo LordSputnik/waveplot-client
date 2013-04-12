@@ -35,7 +35,7 @@ VERSION = u"CITRUS"
 EDITOR_KEY = u""
 SERVER = u"http://waveplot.ockmore.net"
 
-LAST_RUN = u"2013-03-08 12:44:27"
+LAST_RUN = u"2013-04-12 23:55:27"
 REMOTE_URL = u"https://raw.github.com/LordSputnik/waveplot-client"
 UPDATE_BRANCH = u"alpha"
 
