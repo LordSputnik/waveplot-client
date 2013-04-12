@@ -31,7 +31,7 @@ import datetime
 
 MAX_HTTP_ATTEMPTS = 3
 
-VERSION = u"BANNANA"
+VERSION = u"CITRUS"
 EDITOR_KEY = u""
 SERVER = u"http://pi.ockmore.net:19048"
 
@@ -210,15 +210,11 @@ for directory, directories, filenames in os.walk(u"."):
                     else:
                         output = output.partition("WAVEPLOT_START")[2]
 
-                        image_data, sep, output = output.partition("WAVEPLOT_LARGE_THUMB")
+                        image_data, sep, output = output.partition("WAVEPLOT_DR")
                         if sep == "":
                           raise ValueError
 
-                        large_thumbnail, sep, output = output.partition("WAVEPLOT_SMALL_THUMB")
-                        if sep == "":
-                          raise ValueError
-
-                        small_thumbnail, sep, output = output.partition("WAVEPLOT_INFO")
+                        dr, sep, output = output.partition("WAVEPLOT_INFO")
                         if sep == "":
                           raise ValueError
 
@@ -228,9 +224,7 @@ for directory, directories, filenames in os.walk(u"."):
 
                         image_data = base64.b64encode(image_data)
 
-                        large_thumbnail = base64.b64encode(large_thumbnail)
-
-                        small_thumbnail = base64.b64encode(small_thumbnail)
+                        print dr
 
                         length, trimmed, sourcetype, num_channels = info.split("|")
 
@@ -239,10 +233,9 @@ for directory, directories, filenames in os.walk(u"."):
                         values = {'recording' : recording_id,
                                   'release' : release_id,
                                   'track' : track_num,
+                                  'dr_level' : dr,
                                   'disc' : disc_num,
                                   'image' : image_data,
-                                  'large_thumb' : large_thumbnail,
-                                  'small thumb' : small_thumbnail,
                                   'editor' : EDITOR_KEY,
                                   'length' : length,
                                   'trimmed' : trimmed,

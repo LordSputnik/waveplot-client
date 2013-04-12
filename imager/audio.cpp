@@ -27,6 +27,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <limits>
 
 //#define DEBUG
 
@@ -263,6 +264,22 @@ namespace Audio
 
         (*image_data++) = uint8_t(chunk * 200.0);
       }
+
+      size_t min_trim = numeric_limits<size_t>::max();
+      for(size_t i = 0; ((i != image_output.size()) && (min_trim == numeric_limits<size_t>::max())); ++i)
+      {
+        if(image_output[i] > 10)
+          min_trim = i;
+      }
+
+      size_t max_trim = numeric_limits<size_t>::max();
+      for(size_t i = image_output.size() - 1; ((i >= min_trim) && (max_trim == numeric_limits<size_t>::max())); --i)
+      {
+        if(image_output[i] > 10)
+          max_trim = i;
+      }
+
+      duration_secs_trimmed_ = (max_trim - min_trim)/4;
 
       fwrite(image_output.data(),sizeof(uint8_t),image_output.size(),stdout);
     }

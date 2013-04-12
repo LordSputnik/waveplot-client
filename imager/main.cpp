@@ -40,7 +40,7 @@ extern "C"
 
 using namespace std;
 
-#define STANDALONE
+//#define STANDALONE
 
 void die(const char* message)
 {
@@ -48,7 +48,7 @@ void die(const char* message)
   exit(1);
 }
 
-const char* version = "CITRUS";
+const char version[] = "CITRUS";
 
 #ifndef STANDALONE
 int main(int argc, char* argv[])
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 #else
 int main()
 {
-  char input_filename[] = "test3.mp3";
+  char input_filename[] = "test.flac";
 #endif
 
 #ifdef WIN32
