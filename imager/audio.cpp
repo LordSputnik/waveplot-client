@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <sstream>
 
 //#define DEBUG
 
@@ -186,7 +187,7 @@ namespace Audio
 
         dr_channel_rms_[i].sort([](double first, double second) { return (first > second); });
 
-        size_t values_to_sample = max(1UL,dr_channel_rms_[i].size() / 5);
+        size_t values_to_sample = std::max(size_t(1),size_t(dr_channel_rms_[i].size() / 5));
 
         dr_channel_rms_[i].resize(values_to_sample);
 
@@ -225,8 +226,8 @@ namespace Audio
       }
 
       dr_rating /= num_channels_;
-      fprintf(stderr,"DR Level: %2.5lf\n",dr_rating);
-      fprintf(stdout,"%2.1lf",dr_rating);
+      fprintf(stderr,"DR Level: %2.5f\n",dr_rating);
+      fprintf(stdout,"%2.1f",dr_rating);
     }
 
     static void OutputWavePlotImageData()
@@ -355,7 +356,13 @@ namespace Audio
 
     AVCodec* codec = avcodec_find_decoder(codec_context->codec_id);
 
-    format_id_ = std::string(codec->name) + "-" + to_string(bit_rate_);
+    stringstream sstr;
+
+    sstr << codec->name << '-' << bit_rate_;
+
+    format_id_ = sstr.str();
+
+    //format_id_ = std::string() + "-" + to_string(bit_rate_);
 
     fprintf(stderr,"Format String: %s Bit Rate: %u\n",format_id_.c_str(),bit_rate_);
 
@@ -432,12 +439,12 @@ namespace Audio
 
     if((num_channels_ == 2) && (delta_ps < 0.0001))
     {
-      fprintf(stderr,"Track is false stereo! (%lf)\n", delta_ps);
+      fprintf(stderr,"Track is false stereo! (%f)\n", delta_ps);
       num_channels_ = 1;
     }
 
 #ifdef DEBUG
-    fprintf(stderr,"Channel Delta: %lf\n",delta_ps);
+    fprintf(stderr,"Channel Delta: %f\n",delta_ps);
     fprintf(stderr,"Samples: %lu\n",total_samples);
 #endif
 
