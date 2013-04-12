@@ -33,7 +33,7 @@ MAX_HTTP_ATTEMPTS = 3
 
 VERSION = u"CITRUS"
 EDITOR_KEY = u""
-SERVER = u"http://pi.ockmore.net:19048"
+SERVER = u"http://waveplot.ockmore.net"
 
 LAST_RUN = u"2013-03-08 12:44:27"
 REMOTE_URL = u"https://raw.github.com/LordSputnik/waveplot-client"
