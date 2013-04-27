@@ -26,9 +26,7 @@ extern "C"
     #define UINT64_C(c) (c ## ULL)
   #endif
 
-  #include "libavcodec/avcodec.h"
   #include "libavformat/avformat.h"
-  #include "libavutil/avutil.h"
 
   #ifdef WIN32
     #include <fcntl.h>
@@ -73,7 +71,9 @@ int main()
 #endif
 
 #ifdef WIN32
+#ifdef DEBUG
   fprintf(stderr,"Setting stdout to binary mode!");
+#endif
   if(_setmode(1, O_BINARY) == -1)
   {
     puts("Failed to do so.");

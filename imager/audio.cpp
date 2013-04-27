@@ -433,7 +433,11 @@ namespace Audio
       avcodec_get_frame_defaults(frame);
     }
 
+#if (LIBAVCODEC_VERSION_MAJOR > 53)
     avcodec_free_frame(&frame);
+#else
+    av_free(frame);
+#endif
 
     float delta_ps = float(channel_delta)/total_samples;
 

@@ -30,7 +30,10 @@ extern "C"
   #include "libavcodec/avcodec.h"
   #include "libavformat/avformat.h"
   #include "libavutil/avutil.h"
+
+#if LIBAVCODEC_VERSION_MAJOR > 53
   #include "libavutil/channel_layout.h"
+#endif
 }
 
 namespace Audio
