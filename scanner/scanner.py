@@ -32,10 +32,10 @@ import datetime
 MAX_HTTP_ATTEMPTS = 3
 
 VERSION = u"CITRUS"
-EDITOR_KEY = u"7852842"
+EDITOR_KEY = u""
 SERVER = u"http://pi.ockmore.net:19048"
 
-LAST_RUN = u"2013-04-13 11:58:27"
+LAST_RUN = u"2013-05-02 22:09:00"
 REMOTE_URL = u"https://raw.github.com/LordSputnik/waveplot-client"
 UPDATE_BRANCH = u"alpha"
 
