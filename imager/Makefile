@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -std=c++11 -c -O2
 ODIR = obj
-_OBJS = audio.o main.o
+_OBJS = audio.o main.o error.o
 OBJS = $(patsubst %,$(ODIR)/%,$(_OBJS))
 LINK_OPTS = -L/usr/local/lib -lavformat -lavcodec -lavutil -lpng
 OUT = WavePlotImager
