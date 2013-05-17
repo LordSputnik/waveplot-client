@@ -156,10 +156,12 @@ def find_imager():
     scanner_dir = os.path.realpath(os.path.dirname(__file__))
     imager_dir = os.path.realpath(os.path.join(os.path.split(scanner_dir)[0], u"imager"))
 
-    for filename in os.listdir(imager_dir):
-        if filename == imager_exe:
-            imager_exe = os.path.realpath(os.path.join(imager_dir, filename))
-            return
+    # Make sure the directory exists
+    if os.path.exists(imager_dir):
+        for filename in os.listdir(imager_dir):
+            if filename == imager_exe:
+                imager_exe = os.path.realpath(os.path.join(imager_dir, filename))
+                return
 
     # If not, check the scanner dir itself.
     for filename in os.listdir(scanner_dir):
