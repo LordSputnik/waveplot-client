@@ -237,8 +237,6 @@ if __name__ == "__main__":
                     disc_num = audio["discnumber"][0].split('/')[0].strip()
 
             if (recording_id != "") and (release_id != "") and (track_num != "") and (disc_num != ""):
-                sys.stdout.write(u"#".encode(sys.stdout.encoding, "replace"))
-                sys.stdout.flush()
                 dir_has_audio = True
 
                 c.execute("SELECT * FROM scanned_files WHERE file_path=?", (in_path,))
@@ -246,6 +244,8 @@ if __name__ == "__main__":
 
                 if r != None:
                     if r['version'] == VERSION:
+                        sys.stdout.write(u"#".encode(sys.stdout.encoding, "replace"))
+                        sys.stdout.flush()
                         continue
 
                 try:
