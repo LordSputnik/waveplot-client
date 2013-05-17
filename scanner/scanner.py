@@ -31,7 +31,6 @@ import sqlite3 as db
 VERSION = u"CITRUS"
 LAST_RUN = u"2013-05-17 00:04"
 
-
 _console_encoding = sys.stdout.encoding
 def safeprint(str_to_print):
     """Encode unicode strings to filesystem encoding."""
@@ -98,16 +97,18 @@ def check_and_read_config():
 
 
 def check_and_open_db():
-    if not os.path.exists(data_path):
-        db_conn = db.connect(data_path)
-        c = db_conn.cursor()
+    global db_conn
+    db_conn = db.connect(data_path)
+    db_conn.row_factory = db.Row
 
-        c.execute("CREATE TABLE scanned_files (file_path TEXT PRIMARY KEY, waveplot_id TEXT, date INTEGER)")
-
+    c = db_conn.cursor()
+    try:
+        c.execute('SELECT file_path, waveplot_id, version, date FROM scanned_files LIMIT 1')
+    except db.OperationalError:
+        # Drop the table, create new one.
+        c.execute("DROP TABLE IF EXISTS scanned_files")
+        c.execute("CREATE TABLE scanned_files (file_path TEXT PRIMARY KEY, waveplot_id TEXT, version TEXT, date INTEGER)")
         db_conn.commit()
-    else:
-        db_conn = db.connect(data_path)
-
 
 def GetLastRunValue(script_str):
     find_str = "LAST_RUN" + " = u\""
@@ -123,7 +124,6 @@ def GetLastRunValue(script_str):
 
 
 def auto_update():
-    global update_applied
     remote_script = requests.get(u"{}/{}/{}".format(config['updates']['repo_url'], config['updates']['update_branch'], u"scanner/scanner.py")).content
 
     remote_last_run = GetLastRunValue(remote_script)
@@ -142,7 +142,6 @@ def auto_update():
 
         if update_now.lower() == "y":
             print "Updating! Please wait..."
-            update_applied = True
 
             with open(__file__, "wb") as local_script:
                 local_script.write(remote_script)
@@ -153,8 +152,7 @@ def auto_update():
 def find_imager():
     global imager_exe
 
-    # Get the directory containing the scanner script
-    # Imager should be in the same directory.
+    # First, search script directory.
     scanner_dir = os.path.realpath(os.path.dirname(__file__))
 
     for filename in os.listdir(scanner_dir):
@@ -162,6 +160,7 @@ def find_imager():
             imager_exe = os.path.realpath(os.path.join(scanner_dir, filename))
             return
 
+    # Otherwise, assume it can just be called as "WaveplotImager" or "WaveplotImager.exe"
     safeprint("Unable to locate WavePlotImager in script directory - assuming it's in PATH.")
     return
 
@@ -173,18 +172,15 @@ def WavePlotPost(url, values):
             r = requests.post(url, data = values)
         except requests.ConnectionError:
             attempts += 1
+            time.sleep(0.5)
         else:
             return r.content
-
-        time.sleep(0.5)
 
     return None
 
 
 # --- Main Script --- #
 if __name__ == "__main__":
-
-    update_applied = False
 
     config_path = None
     data_path = None
@@ -193,9 +189,11 @@ if __name__ == "__main__":
 
     db_conn = None
 
-    imager_exe = "WavePlotImager"
+    dir_has_audio = False
+
+    imager_exe = u"WavePlotImager"
     if sys.platform == "win32":
-        imager_exe += ".exe"
+        imager_exe += u".exe"
 
     set_waveplot_paths()
     check_and_read_config()
@@ -205,12 +203,20 @@ if __name__ == "__main__":
 
     find_imager()
 
-    safeprint("Using executable: " + imager_exe)
+    safeprint(u"Using executable: {}".format(imager_exe))
 
-    safeprint("\nFinding files to scan...\n")
+    safeprint(u"\nFinding files to scan...")
+
+    c = db_conn.cursor()
 
     for directory, directories, filenames in os.walk(u"."):
-        safeprint(u"\n" + directory)
+
+        if dir_has_audio:
+            safeprint("")
+
+        safeprint(directory)
+        dir_has_audio = False
+
         for filename in filenames:
             recording_id = ""
             release_id = ""
@@ -233,66 +239,68 @@ if __name__ == "__main__":
             if (recording_id != "") and (release_id != "") and (track_num != "") and (disc_num != ""):
                 sys.stdout.write(u"#".encode(sys.stdout.encoding, "replace"))
                 sys.stdout.flush()
-                url = config['server'] + "/check"
+                dir_has_audio = True
 
-                values = {'recording' : recording_id,
-                          'release' : release_id,
-                          'track' : track_num,
-                          'disc' : disc_num
-                          }
+                c.execute("SELECT * FROM scanned_files WHERE file_path=?", (in_path,))
+                r = c.fetchone()
 
-                the_page = WavePlotPost(url, values)
+                if r != None:
+                    if r['version'] == VERSION:
+                        continue
 
-                if the_page == "0":
+                try:
+                    in_path_enc = in_path.encode('UTF-8', 'strict')
+                except UnicodeError:
+                    safeprint("Filename couldn't be encoded to UTF-8! You have a really strange collection!")
+                else:
+                    safeprint(u"File:" + in_path)
+
                     try:
-                        in_path_enc = in_path.encode('UTF-8', 'strict')
-                    except UnicodeError:
-                        safeprint("Filename couldn't be encoded to UTF-8! You have a really strange collection!")
+                        output = subprocess.check_output([imager_exe.encode("UTF-8"), in_path_enc, VERSION.encode("UTF-8")])
+                    except subprocess.CalledProcessError:
+                        safeprint("Imager Error - Skipped File.")
                     else:
-                        safeprint(u"File:" + in_path)
+                        output = output.partition("WAVEPLOT_START")[2]
 
-                        try:
-                            output = subprocess.check_output([imager_exe.encode("UTF-8"), in_path_enc, VERSION.encode("UTF-8")])
-                        except subprocess.CalledProcessError:
-                            safeprint("Imager Error - Skipped File.")
-                        else:
-                            output = output.partition("WAVEPLOT_START")[2]
+                        image_data, sep, output = output.partition("WAVEPLOT_DR")
+                        if sep == "":
+                          raise ValueError
 
-                            image_data, sep, output = output.partition("WAVEPLOT_DR")
-                            if sep == "":
-                              raise ValueError
+                        dr, sep, output = output.partition("WAVEPLOT_INFO")
+                        if sep == "":
+                          raise ValueError
 
-                            dr, sep, output = output.partition("WAVEPLOT_INFO")
-                            if sep == "":
-                              raise ValueError
+                        info, sep, output = output.partition("WAVEPLOT_END")
+                        if sep == "":
+                          raise ValueError
 
-                            info, sep, output = output.partition("WAVEPLOT_END")
-                            if sep == "":
-                              raise ValueError
+                        image_data = base64.b64encode(image_data)
 
-                            image_data = base64.b64encode(image_data)
+                        print dr
 
-                            print dr
+                        length, trimmed, sourcetype, num_channels = info.split("|")
 
-                            length, trimmed, sourcetype, num_channels = info.split("|")
+                        url = config['server'] + '/submit'
 
-                            url = config['server'] + '/submit'
+                        values = {'recording' : recording_id,
+                                  'release' : release_id,
+                                  'track' : track_num,
+                                  'dr_level' : dr,
+                                  'disc' : disc_num,
+                                  'image' : image_data,
+                                  'editor' : config['editor_key'],
+                                  'length' : length,
+                                  'trimmed' : trimmed,
+                                  'source' : sourcetype,
+                                  'num_channels': num_channels,
+                                  'version' : VERSION }
 
-                            values = {'recording' : recording_id,
-                                      'release' : release_id,
-                                      'track' : track_num,
-                                      'dr_level' : dr,
-                                      'disc' : disc_num,
-                                      'image' : image_data,
-                                      'editor' : EDITOR_KEY,
-                                      'length' : length,
-                                      'trimmed' : trimmed,
-                                      'source' : sourcetype,
-                                      'num_channels': num_channels,
-                                      'version' : VERSION }
+                        assigned_waveplot_id = WavePlotPost(url, values)
 
-                            the_page = WavePlotPost(url, values)
+                        safeprint(assigned_waveplot_id)
 
-                            safeprint(the_page)
+                        c.execute("INSERT INTO scanned_files VALUES (?,?,?,?)", (in_path, assigned_waveplot_id, VERSION, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")))
+                        db_conn.commit()
+
 
     db_conn.close()
