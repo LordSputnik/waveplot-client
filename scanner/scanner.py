@@ -84,7 +84,7 @@ def check_and_read_config():
         config['server'] = "http://pi.ockmore.net:19048"
         config['max_http_attempts'] = 3
         config['updates'] = { 'repo_url' : "https://raw.github.com/LordSputnik/waveplot-client",
-                              'update_branch' : "beta" }
+                              'update_branch' : "alpha" }
 
         safeprint ("\nThat's it for now! WavePlot will now scan the current working directory, and let you know how it's getting on from time to time. Simple set-ups are so good, right?")
 
