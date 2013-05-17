@@ -29,7 +29,7 @@ import sqlite3 as db
 
 
 VERSION = u"CITRUS"
-LAST_RUN = u"2013-05-17 00:04"
+LAST_RUN = u"2013-05-17 18:40"
 
 _console_encoding = sys.stdout.encoding
 def safeprint(str_to_print):
@@ -84,7 +84,7 @@ def check_and_read_config():
         config['server'] = "http://pi.ockmore.net:19048"
         config['max_http_attempts'] = 3
         config['updates'] = { 'repo_url' : "https://raw.github.com/LordSputnik/waveplot-client",
-                              'update_branch' : "alpha" }
+                              'update_branch' : "beta" }
 
         safeprint ("\nThat's it for now! WavePlot will now scan the current working directory, and let you know how it's getting on from time to time. Simple set-ups are so good, right?")
 
@@ -159,6 +159,12 @@ def find_imager():
     for filename in os.listdir(imager_dir):
         if filename == imager_exe:
             imager_exe = os.path.realpath(os.path.join(imager_dir, filename))
+            return
+
+    # If not, check the scanner dir itself.
+    for filename in os.listdir(scanner_dir):
+        if filename == imager_exe:
+            imager_exe = os.path.realpath(os.path.join(scanner_dir, filename))
             return
 
     # Otherwise, assume it can just be called as "WaveplotImager" or "WaveplotImager.exe"
