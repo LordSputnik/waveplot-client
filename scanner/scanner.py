@@ -31,7 +31,7 @@ import re
 import uuid
 
 VERSION = u"CITRUS"
-LAST_RUN = u"2013-05-17 18:40"
+LAST_RUN = u"2013-05-25 21:37"
 
 _console_encoding = sys.stdout.encoding
 def safeprint(str_to_print):
