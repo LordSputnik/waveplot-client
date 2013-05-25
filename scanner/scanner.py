@@ -17,6 +17,7 @@
 # along with WavePlot. If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess
+import zlib
 import base64
 import requests
 import mutagen
@@ -26,7 +27,8 @@ import time
 import datetime
 import json
 import sqlite3 as db
-
+import re
+import uuid
 
 VERSION = u"CITRUS"
 LAST_RUN = u"2013-05-17 18:40"
@@ -61,10 +63,6 @@ def set_waveplot_paths():
 
     try:
         os.makedirs(config_path)
-    except OSError:
-        pass
-
-    try:
         os.makedirs(data_path)
     except OSError:
         pass
@@ -196,6 +194,40 @@ def WavePlotPost(url, values):
 
     return None
 
+def submit_imager_output(output):
+    split_data = re.split(r"WAVEPLOT_START|WAVEPLOT_DR|WAVEPLOT_INFO|WAVEPLOT_END", output)
+
+    if len(split_data) == 5:
+        image_data, dr_level, info = split_data[1:4]
+
+        encoded_image = base64.b64encode(zlib.compress(image_data))
+
+        length, trimmed, sourcetype, num_channels = info.split("|")
+
+        url = config['server'] + '/submit'
+
+        values = {'recording' : recording_id,
+                  'release' : release_id,
+                  'track' : track_num,
+                  'dr_level' : dr_level,
+                  'disc' : disc_num,
+                  'image' : encoded_image,
+                  'editor' : config['editor_key'],
+                  'length' : length,
+                  'trimmed' : trimmed,
+                  'source' : sourcetype,
+                  'num_channels': num_channels,
+                  'version' : VERSION }
+
+        result = WavePlotPost(url, values)
+
+        try:
+            uuid.UUID(result)  # Result should be the assigned or existing WP uuid.
+        except (ValueError, TypeError):
+            safeprint(result)
+            return None
+        else:
+            return result
 
 # --- Main Script --- #
 if __name__ == "__main__":
@@ -221,106 +253,63 @@ if __name__ == "__main__":
 
     find_imager()
 
-    if imager_exe is not None:
+    if imager_exe is None:
+        sys.exit(1)
 
-        safeprint(u"Using executable: {}".format(imager_exe))
+    safeprint(u"Using executable: {}".format(imager_exe))
 
-        safeprint(u"\nFinding files to scan...")
+    imager_exe = imager_exe.encode("utf_8")
+    VERSION = VERSION.encode("utf_8")
 
-        c = db_conn.cursor()
+    safeprint(u"\nFinding files to scan...")
 
-        for directory, directories, filenames in os.walk(u"."):
+    c = db_conn.cursor()
 
-            if dir_has_audio:
-                safeprint("")
+    for directory, directories, filenames in os.walk(u"."):
 
-            safeprint(directory)
-            dir_has_audio = False
+        if dir_has_audio:
+            safeprint("")
 
-            for filename in filenames:
-                recording_id = ""
-                release_id = ""
-                track_num = ""
-                disc_num = ""
-                file_ext = os.path.splitext(filename)[1][1:]
-                in_path = os.path.realpath(os.path.join(directory, filename))
+        safeprint(directory)
+        dir_has_audio = False
 
-                audio = mutagen.File(os.path.join(directory, filename), easy = True)
-                if audio:
-                    if "musicbrainz_trackid" in audio:
-                        recording_id = audio["musicbrainz_trackid"][0]
-                    if "musicbrainz_albumid" in audio:
-                        release_id = audio["musicbrainz_albumid"][0]
-                    if "tracknumber" in audio:
-                        track_num = audio["tracknumber"][0].split('/')[0].strip()
-                    if "discnumber" in audio:
-                        disc_num = audio["discnumber"][0].split('/')[0].strip()
+        for filename in filenames:
 
-                if (recording_id != "") and (release_id != "") and (track_num != "") and (disc_num != ""):
+            in_path = os.path.realpath(os.path.join(directory, filename))
+
+            audio = mutagen.File(os.path.join(directory, filename), easy = True)
+
+            if audio:
+                recording_id = audio.get("musicbrainz_trackid", [None, ])[0]
+                release_id = audio.get("musicbrainz_albumid", [None, ])[0]
+                track_num = audio.get("tracknumber", [None, ])[0]
+                disc_num = audio.get("discnumber", [None, ])[0]
+
+                if (recording_id is not None) and (release_id is not None) and (track_num is not None) and (disc_num is not None):
                     dir_has_audio = True
 
-                    c.execute("SELECT * FROM scanned_files WHERE file_path=?", (in_path,))
-                    r = c.fetchone()
+                    track_num = track_num.split(u'/')[0].strip()
+                    disc_num = disc_num.split(u'/')[0].strip()
 
-                    if r != None:
-                        if r['version'] == VERSION:
+                    c.execute("SELECT * FROM scanned_files WHERE file_path=?", (in_path,))
+                    result = c.fetchone()
+
+                    if result is not None:
+                        if (result['version'] == VERSION) and (result['waveplot_id'] is not None):
                             sys.stdout.write(u"#".encode(sys.stdout.encoding, "replace"))
                             sys.stdout.flush()
                             continue
 
+                    safeprint(u"File: {}".format(in_path))
+
                     try:
-                        in_path_enc = in_path.encode('UTF-8', 'strict')
-                    except UnicodeError:
-                        safeprint("Filename couldn't be encoded to UTF-8! You have a really strange collection!")
+                        output = subprocess.check_output([imager_exe, in_path.encode('utf_8'), VERSION])
+                    except subprocess.CalledProcessError:
+                        safeprint("WavePlotImager Error - Skipped File.")
                     else:
-                        safeprint(u"File:" + in_path)
+                        result = submit_imager_output(output)
 
-                        try:
-                            output = subprocess.check_output([imager_exe.encode("UTF-8"), in_path_enc, VERSION.encode("UTF-8")])
-                        except subprocess.CalledProcessError:
-                            safeprint("Imager Error - Skipped File.")
-                        else:
-                            output = output.partition("WAVEPLOT_START")[2]
+                        c.execute("INSERT OR REPLACE INTO scanned_files VALUES (?,?,?,?)", (in_path, result, VERSION, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")))
+                        db_conn.commit()
 
-                            image_data, sep, output = output.partition("WAVEPLOT_DR")
-                            if sep == "":
-                              raise ValueError
-
-                            dr, sep, output = output.partition("WAVEPLOT_INFO")
-                            if sep == "":
-                              raise ValueError
-
-                            info, sep, output = output.partition("WAVEPLOT_END")
-                            if sep == "":
-                              raise ValueError
-
-                            image_data = base64.b64encode(image_data)
-
-                            print dr
-
-                            length, trimmed, sourcetype, num_channels = info.split("|")
-
-                            url = config['server'] + '/submit'
-
-                            values = {'recording' : recording_id,
-                                      'release' : release_id,
-                                      'track' : track_num,
-                                      'dr_level' : dr,
-                                      'disc' : disc_num,
-                                      'image' : image_data,
-                                      'editor' : config['editor_key'],
-                                      'length' : length,
-                                      'trimmed' : trimmed,
-                                      'source' : sourcetype,
-                                      'num_channels': num_channels,
-                                      'version' : VERSION }
-
-                            assigned_waveplot_id = WavePlotPost(url, values)
-
-                            safeprint(assigned_waveplot_id)
-
-                            c.execute("INSERT INTO scanned_files VALUES (?,?,?,?)", (in_path, assigned_waveplot_id, VERSION, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")))
-                            db_conn.commit()
-
-
-        db_conn.close()
+    db_conn.close()
