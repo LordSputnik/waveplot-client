@@ -122,7 +122,7 @@ def GetLastRunValue(script_str):
 
 
 def auto_update():
-    remote_script = requests.get(u"{}/{}/{}".format(config['updates']['repo_url'], config['updates']['update_branch'], u"scanner/scanner.py")).content
+    remote_script = requests.get(u"{}/{}/{}".format(config['updates']['repo_url'], config['updates']['update_branch'], u"waveplot.py")).content
 
     remote_last_run = GetLastRunValue(remote_script)
 
@@ -152,7 +152,7 @@ def find_imager():
 
     # First, imager should be in ../imager directory, relative to scanner.py.
     scanner_dir = os.path.realpath(os.path.dirname(__file__))
-    imager_dir = os.path.realpath(os.path.join(os.path.split(scanner_dir)[0], u"imager"))
+    imager_dir = os.path.realpath(os.path.join(scanner_dir, u"imager"))
 
     # Make sure the directory exists
     if os.path.exists(imager_dir):
