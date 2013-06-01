@@ -13,7 +13,8 @@ metadata. It then makes a submission to the WavePlot website. All of this code
 is contained in the "waveplot" python script.
 
 Setting Up
-========
+----------
+
 You'll need to get libav-codec, libav-format and libav-utils in order to compile
 the Imager executable. Then you should be able to use the included Makefile to
 compile and link the required source files.
@@ -22,7 +23,7 @@ You'll need to install Python 2.7 and the "mutagen" and "requests" Python
 packages.
 
 Running
-=======
+-------
 
 After building, the Imager executable should be placed in the ./imager directory
 relative to the waveplot script. To execute, simply navigate to the folder
