@@ -1,11 +1,11 @@
 CC = g++
-CFLAGS = -std=c++11 -c -O2
+CFLAGS = -std=c++11 -c -O2 -DWIN32
 ODIR = obj
 _OBJS = audio.o main.o error.o
 OBJS = $(patsubst %,$(ODIR)/%,$(_OBJS))
-LINK_OPTS = -L/usr/local/lib -lavformat -lavcodec -lavutil -lpng
-OUT = WavePlotImager
-INCLUDE= -I/usr/local/include
+LINK_OPTS = -L/local/lib -lavformat -lavcodec -lavutil -lz -static-libgcc -static-libstdc++
+OUT = WavePlotImager.exe
+INCLUDE= -I/local/include
 
 all : $(OBJS)
 	$(CC) $(OBJS) -o $(OUT) $(LINK_OPTS)
@@ -20,3 +20,4 @@ $(ODIR):
 
 clean:
 	rm -f $(ODIR)/*.o $(OUT)
+

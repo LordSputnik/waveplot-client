@@ -190,7 +190,7 @@ def WavePlotPost(url, values):
             attempts += 1
             time.sleep(0.5)
         else:
-            return r.content
+            return r.json()
 
     return None
 
@@ -204,7 +204,7 @@ def submit_imager_output(output):
 
         length, trimmed, sourcetype, num_channels = info.split("|")
 
-        url = config['server'] + '/submit'
+        url = config['server'] + '/json/waveplot'
 
         values = {'recording' : recording_id,
                   'release' : release_id,
@@ -221,13 +221,11 @@ def submit_imager_output(output):
 
         result = WavePlotPost(url, values)
 
-        try:
-            uuid.UUID(result)  # Result should be the assigned or existing WP uuid.
-        except (ValueError, TypeError):
-            safeprint(result)
+        if result[u'result'] == u'failure':
+            safeprint(result[u'error'])
             return None
         else:
-            return result
+            return result[u'uuid']
 
 # --- Main Script --- #
 if __name__ == "__main__":
@@ -308,6 +306,8 @@ if __name__ == "__main__":
                         safeprint("WavePlotImager Error - Skipped File.")
                     else:
                         result = submit_imager_output(output)
+                        
+                        print result
 
                         c.execute("INSERT OR REPLACE INTO scanned_files VALUES (?,?,?,?)", (in_path, result, VERSION, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")))
                         db_conn.commit()
