@@ -45,11 +45,12 @@ namespace Audio
 
     static uint8_t num_channels_;
 
+    static uint16_t bit_depth_;
     static uint32_t bit_rate_;
     static uint32_t sample_rate_;
-    static AVSampleFormat sample_format_;
+    static string source_type_;
 
-    static string format_id_;
+    static AVSampleFormat sample_format_;
 
     static const array<double,4> sample_weightings_ = {{10.0,8.0,5.0,3.0}};
 
@@ -287,7 +288,17 @@ namespace Audio
 
     static void OutputInfo()
     {
-      fprintf(stdout,"%u|%u|%s|%u",duration_secs_,duration_secs_trimmed_,format_id_.c_str(),num_channels_);
+        char json_string[] = "{\
+          \"length\":%u,\
+          \"length_trimmed\":%u,\
+          \"source_type\":%s,\
+          \"sample_rate\":%u,\
+          \"bit_rate\":%u,\
+          \"bit_depth\":%hu,\
+          \"num_channels\":%u\
+        }";
+
+        fprintf(stdout,json_string,duration_secs_,duration_secs_trimmed_,source_type_.c_str(),sample_rate_,bit_rate_,bit_depth_,num_channels_);
     }
 
     static void OutputImageData()
@@ -356,15 +367,7 @@ namespace Audio
 
     AVCodec* codec = avcodec_find_decoder(codec_context->codec_id);
 
-    stringstream sstr;
-
-    sstr << codec->name << '-' << bit_rate_;
-
-    format_id_ = sstr.str();
-
-    //format_id_ = std::string() + "-" + to_string(bit_rate_);
-
-    fprintf(stderr,"Format String: %s Bit Rate: %u\n",format_id_.c_str(),bit_rate_);
+    source_type_ = codec->name;
 
     if (!avcodec_open2(codec_context, codec, nullptr) < 0)
       error(ERROR_AVCODEC_OPEN2);
