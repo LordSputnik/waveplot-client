@@ -195,29 +195,27 @@ def WavePlotPost(url, values):
     return None
 
 def submit_imager_output(output):
+    print(output)
     split_data = re.split(r"WAVEPLOT_START|WAVEPLOT_DR|WAVEPLOT_INFO|WAVEPLOT_END", output)
 
     if len(split_data) == 5:
         image_data, dr_level, info = split_data[1:4]
 
         encoded_image = base64.b64encode(zlib.compress(image_data))
-
-        length, trimmed, sourcetype, num_channels = info.split("|")
+        info = json.loads(info)
 
         url = config['server'] + '/json/waveplot'
 
-        values = {'recording' : recording_id,
-                  'release' : release_id,
-                  'track' : track_num,
-                  'dr_level' : dr_level,
-                  'disc' : disc_num,
-                  'image' : encoded_image,
-                  'editor' : config['editor_key'],
-                  'length' : length,
-                  'trimmed' : trimmed,
-                  'source' : sourcetype,
-                  'num_channels': num_channels,
-                  'version' : VERSION }
+        values = {u'recording' : recording_id,
+                  u'release' : release_id,
+                  u'track' : track_num,
+                  u'dr_level' : dr_level,
+                  u'disc' : disc_num,
+                  u'image' : encoded_image,
+                  u'editor' : config['editor_key'],
+                  u'version' : VERSION }
+
+        values.update(info)
 
         result = WavePlotPost(url, values)
 
@@ -306,7 +304,7 @@ if __name__ == "__main__":
                         safeprint("WavePlotImager Error - Skipped File.")
                     else:
                         result = submit_imager_output(output)
-                        
+
                         print result
 
                         c.execute("INSERT OR REPLACE INTO scanned_files VALUES (?,?,?,?)", (in_path, result, VERSION, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")))

@@ -288,15 +288,15 @@ namespace Audio
 
     static void OutputInfo()
     {
-        char json_string[] = "{\
-          \"length\":%u,\
-          \"length_trimmed\":%u,\
-          \"source_type\":%s,\
-          \"sample_rate\":%u,\
-          \"bit_rate\":%u,\
-          \"bit_depth\":%hu,\
-          \"num_channels\":%u\
-        }";
+        char json_string[] = "{"
+          "\"length\":%u,"
+          "\"length_trimmed\":%u,"
+          "\"source_type\":\"%s\","
+          "\"sample_rate\":%u,"
+          "\"bit_rate\":%u,"
+          "\"bit_depth\":%hu,"
+          "\"num_channels\":%u"
+        "}";
 
         fprintf(stdout,json_string,duration_secs_,duration_secs_trimmed_,source_type_.c_str(),sample_rate_,bit_rate_,bit_depth_,num_channels_);
     }
@@ -353,6 +353,7 @@ namespace Audio
     }
 
     uint8_t sample_bytes = static_cast<uint8_t>(av_get_bytes_per_sample(sample_format_));
+    bit_depth_ = sample_bytes * 8; //This isn't particularly accurate - libav does stuff to the audio to make it either 16 or 32 bits.
 
     dr_channel_peak_.resize(num_channels_);
     dr_channel_rms_.resize(num_channels_);
