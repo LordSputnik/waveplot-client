@@ -16,12 +16,41 @@
 # You should have received a copy of the GNU General Public License
 # along with WavePlot. If not, see <http://www.gnu.org/licenses/>.
 
+import os
+
+# -----------------------------------------------------------------------------
+#  Default Configuration - Used to Create Initial Configutation               #
+# -----------------------------------------------------------------------------
+
+configuration = {
+    "submission_server":"http://localhost:19048",
+    "max_submission_attempts":3
+}
+
+# -----------------------------------------------------------------------------
+#  Default Paths
+# -----------------------------------------------------------------------------
+
+# These will be search in order to find the configuration file
+default_paths = {
+    "linux2":[
+        os.path.expanduser(u"~/.config/waveplot/config.json"),
+        os.path.expanduser(u"~/.local/share/waveplot.db")
+        
+    ],
+    "win32":[
+        os.path.join(unicode(os.environ.get('APPDATA','')),'waveplot\\config.json'),
+        os.path.join(unicode(os.environ.get('APPDATA','')),'waveplot\\waveplot.db')
+    ]
+}
+
+
 import subprocess
 import zlib
 import base64
 import requests
 import mutagen
-import os
+
 import sys
 import time
 import datetime
@@ -29,70 +58,147 @@ import json
 import sqlite3 as db
 import re
 import uuid
+import Queue
+from multiprocessing import Process, JoinableQueue 
 
 VERSION = u"CITRUS"
-LAST_RUN = u"2013-06-30 23:14"
 
-_console_encoding = sys.stdout.encoding
-def safeprint(str_to_print):
-    """Encode unicode strings to filesystem encoding."""
-    if isinstance(str_to_print, unicode):
-        print str_to_print.encode(_console_encoding, 'replace')
-    else:
-        print unicode(str_to_print).encode(_console_encoding, "replace")  # Assume string is ascii.
+from ctypes import *
 
+class File(Structure):
+    _fields_ = [("path", c_char_p)]
+    # Other fields are meaningless to Python (libav stuff)
 
-def set_waveplot_paths():
-    global config_path, data_path
+class Info(Structure):
+     _fields_ = [("duration_secs", c_uint32),
+                 ("num_channels", c_uint8),
+                 ("bit_depth", c_uint16),
+                 ("bit_rate", c_uint32),
+                 ("sample_rate", c_uint32),
+                 ("file_format", c_char_p)]
 
-    if sys.platform == "linux2":
-        config_path = os.path.realpath(os.path.expanduser(u"~/.config"))
-        data_path = os.path.realpath(os.path.expanduser(u"~/.local/share"))
-    elif sys.platform == "win32":
-        config_path = data_path = os.path.realpath(unicode(os.environ['APPDATA']))
+class AudioSamples(Structure):
+     _fields_ = [("samples", POINTER(POINTER(c_float))),
+                 ("length", c_size_t)]
 
-    if (config_path == None) or (not os.path.exists(config_path)):
-        config_path = os.path.realpath(os.path.dirname(__file__))
-    else:
-        config_path = os.path.join(config_path, u"waveplot")
+class DR(Structure):
+     _fields_ = [("channel_peak", POINTER(POINTER(c_float))),
+                 ("channel_rms", POINTER(POINTER(c_float))),
+                 ("length", c_size_t),
+                 ("rating", c_float),
+                 ("capacity", c_size_t),
+                 ("processed_samples", c_size_t)]
 
-    if (data_path == None) or (not os.path.exists(data_path)):
-        data_path = os.path.realpath(os.path.dirname(__file__))
-    else:
-        data_path = os.path.join(data_path, u"waveplot")
+class WavePlot(Structure):
+     _fields_ = [("values", POINTER(c_float)),
+                 ("length", c_size_t),
+                 ("capacity", c_size_t)]
+
+def scan_file(filename):
+    lib = cdll.LoadLibrary("libwaveplot.so.1.0")
+
+    lib.init()
+
+    lib.alloc_file.restype = POINTER(File)
+    lib.alloc_info.restype = POINTER(Info)
+    lib.alloc_audio_samples.restype = POINTER(AudioSamples)
+    lib.alloc_waveplot.restype = POINTER(WavePlot)
+    lib.alloc_dr.restype = POINTER(DR)
+    
+    f = lib.alloc_file()
+    i = lib.alloc_info()
+    w = lib.alloc_waveplot()
+    d = lib.alloc_dr()
+
+    filename = filename.encode("utf-8")
+    lib.load_file(filename,f)
+    lib.get_info(i,f)
+
+    lib.init_dr(d,i)
+
+    a = lib.alloc_audio_samples()
+
+    while lib.get_samples(a,f,i) != 0:
+        lib.update_waveplot(w,a,i)
+        lib.update_dr(d,a,i)
+
+    lib.finish_waveplot(w)
+    lib.finish_dr(d,i)
+    
+    waveplot = w.contents
+    dr = d.contents
+    info = i.contents
+
+    image_data = bytes(bytearray([int(255.0*waveplot.values[x]) for x in range(waveplot.length)]))
+    
+    result = {
+        'dr_level': dr.rating,
+        'image': image_data,
+        'length': info.duration_secs,
+        'source_type': info.file_format,
+        'sample_rate': info.sample_rate,
+        'bit_rate': info.bit_rate,
+        'bit_depth': info.bit_depth,
+        'num_channels': info.num_channels
+    }
+                 
+    lib.free_dr(d)
+    lib.free_waveplot(w)
+    lib.free_info(i)
+    lib.free_file(f)
+    
+    return result
+
+def submit_data(data):
+    pass
+
+import threading
+import time
+
+class Worker(Process):
+    def __init__ (self, in_queue, out_queue):
+        self.in_queue = in_queue
+        self.out_queue = out_queue
+        Process.__init__ (self)
+        self.daemon = True
+    
+    def run(self):
+        in_queue = self.in_queue
+        out_queue = self.out_queue
+        while not in_queue.empty():
+            filename = in_queue.get()
+            print(filename)
+            data = scan_file(filename)
+            out_queue.put((filename, data))
+            in_queue.task_done()
+        
+def first_time_config():
+    import sys
+    
+    conf = configuration
+    
+    print("Thank you for using this application, the WavePlot Scanner. You'll need to perform a few quick steps before first use.")
+    print("If you haven't already, visit http://waveplot.net and register. An \"editor key\" will be emailed to you.")
+    
+    conf['editor_key'] = raw_input("Please paste your editor key below:\n>>> ")
+    
+    conf['configuration_path'], conf['database_path'] = [os.path.abspath(p) for p in default_paths.get(sys.platform, ['config.json','waveplot.db'])]
+        
+    print("Thank you. The following configuration will be used:\n")
+    
+    for k,v in conf.items():
+        print('"{}": "{}"'.format(k,v))
+        
+    print('')
 
     try:
-        os.makedirs(config_path)
-        os.makedirs(data_path)
+        os.makedirs(os.path.dirname(conf['configuration_path']))
+        os.makedirs(os.path.dirname(conf['database_path']))
     except OSError:
         pass
-
-    config_path = os.path.join(config_path, u"waveplot.conf")
-    data_path = os.path.join(data_path, u"waveplot.db")
-
-
-def check_and_read_config():
-    global config
-    if not os.path.exists(config_path):
-        # First time running
-        safeprint ("It looks like this is the first time you've run the script. Please follow the following instructions to get started!\n")
-        safeprint ("1. Firstly, you'll need to enter your editor key. This is the number at the end of the link in your activation email. Please enter it below.")
-
-        config['editor_key'] = raw_input("Activation Key: ")
-        config['server'] = "http://pi.ockmore.net:19048"
-        config['max_http_attempts'] = 3
-        config['updates'] = { 'repo_url' : "https://raw.github.com/LordSputnik/waveplot-client",
-                              'update_branch' : "alpha" }
-
-        safeprint ("\nThat's it for now! WavePlot will now scan the current working directory, and let you know how it's getting on from time to time. Simple set-ups are so good, right?")
-
-        with open(config_path, "wb") as config_file:
-            json.dump(config, config_file, sort_keys = True, indent = 4, separators = (',', ': '))
-
-    else:
-        with open(config_path, "rb") as config_file:
-            config = json.load(config_file)
-
+        
+    with open(conf['configuration_path'],"wb") as f:
+        json.dump(conf,f)
 
 def check_and_open_db():
     global db_conn
@@ -107,129 +213,92 @@ def check_and_open_db():
         c.execute("DROP TABLE IF EXISTS scanned_files")
         c.execute("CREATE TABLE scanned_files (file_path TEXT PRIMARY KEY, waveplot_id TEXT, version TEXT, date INTEGER)")
         db_conn.commit()
-
-def GetLastRunValue(script_str):
-    find_str = "LAST_RUN" + " = u\""
-    start = script_str.find(find_str)
-
-    if start == -1:
-        return None
-
-    start += len(find_str)
-    end = script_str.find("\"", start)
-
-    return script_str[start:end]
-
-
-def auto_update():
-    remote_script = requests.get(u"{}/{}/{}".format(config['updates']['repo_url'], config['updates']['update_branch'], u"waveplot.py")).content
-
-    remote_last_run = GetLastRunValue(remote_script)
-
-    if remote_last_run is None:
-        return
-
-    remote_last_run = datetime.datetime.strptime(remote_last_run[0:16], "%Y-%m-%d %H:%M")
-
-    local_last_run = datetime.datetime.strptime(LAST_RUN[0:16], "%Y-%m-%d %H:%M")
-
-    if local_last_run < remote_last_run:
-        update_now = ""
-        while (update_now != "y") and (update_now != "n"):
-            update_now = raw_input("Update ready! ({}) Apply? (y/n) ".format(remote_last_run))
-
-        if update_now.lower() == "y":
-            print "Updating! Please wait..."
-
-            with open(__file__, "wb") as local_script:
-                local_script.write(remote_script)
-
-            os.execl(__file__)
-
-
-def find_imager():
-    global imager_exe
-
-    # First, imager should be in ../imager directory, relative to scanner.py.
-    scanner_dir = os.path.realpath(os.path.dirname(__file__))
-    imager_dir = os.path.realpath(os.path.join(scanner_dir, u"imager"))
-
-    # Make sure the directory exists
-    if os.path.exists(imager_dir):
-        for filename in os.listdir(imager_dir):
-            if filename == imager_exe:
-                imager_exe = os.path.realpath(os.path.join(imager_dir, filename))
-                return
-
-    # If not, check the scanner dir itself.
-    for filename in os.listdir(scanner_dir):
-        if filename == imager_exe:
-            imager_exe = os.path.realpath(os.path.join(scanner_dir, filename))
-            return
-
-    # Otherwise, assume it can just be called as "WaveplotImager" or "WaveplotImager.exe"
-    safeprint("Unable to locate WavePlotImager in script directory - assuming it's in PATH.")
-
-    safeprint("Checking for existence of WavePlotImager...")
-
-    try:
-        subprocess.call([imager_exe.encode("UTF-8"), ])
-    except OSError:
-        safeprint("Error: Could not find WavePlotImager.")
-        imager_exe = None
-
-    return
-
-
-def WavePlotPost(url, values):
+  
+def upload_waveplot_data(data):
+    # Append non-wp specific values
+    data['editor'] = configuration['editor_key']
+    data['version'] = VERSION
+    
+    # Encode image
+    data['image'] = base64.b64encode(zlib.compress(data['image']))
+    
+    url = configuration['submission_server'] + '/json/waveplot'
+    
     attempts = 0
-    while attempts < config['max_http_attempts']:
+    while attempts < configuration['max_submission_attempts']:
         try:
-            r = requests.post(url, data = values)
+            r = requests.post(url, data = data)
         except requests.ConnectionError:
             attempts += 1
             time.sleep(0.5)
         else:
+            print(r.json())
             return r.json()
 
     return None
+    
 
-def submit_imager_output(output):
-    split_data = re.split(r"WAVEPLOT_START|WAVEPLOT_DR|WAVEPLOT_INFO|WAVEPLOT_END", output)
-
-    if len(split_data) == 5:
-        image_data, dr_level, info = split_data[1:4]
-
-        encoded_image = base64.b64encode(zlib.compress(image_data))
-
-        length, trimmed, sourcetype, num_channels = info.split("|")
-
-        url = config['server'] + '/json/waveplot'
-
-        values = {'recording' : recording_id,
-                  'release' : release_id,
-                  'track' : track_num,
-                  'dr_level' : dr_level,
-                  'disc' : disc_num,
-                  'image' : encoded_image,
-                  'editor' : config['editor_key'],
-                  'length' : length,
-                  'trimmed' : trimmed,
-                  'source' : sourcetype,
-                  'num_channels': num_channels,
-                  'version' : VERSION }
-
-        result = WavePlotPost(url, values)
-
-        if result[u'result'] == u'failure':
-            safeprint(result[u'error'])
-            return None
-        else:
-            return result[u'uuid']
+recognised_ext = [
+    u".flac",
+    u".mp3",
+    u".ogg"
+]
 
 # --- Main Script --- #
 if __name__ == "__main__":
 
+    abspath = os.path.abspath
+    join = os.path.join
+    splitext = os.path.splitext
+    exists = os.path.exists
+
+    conf_path, db_path = [abspath(p) for p in default_paths.get(sys.platform, ['config.json','waveplot.db'])]
+    if not exists(conf_path):
+        first_time_config()
+    else:
+        with open(conf_path, "rb") as f:
+            configuration = json.load(f)
+    
+    # Construct queue
+    file_queue = JoinableQueue()
+    upload_queue = JoinableQueue()
+    for directory, directories, filenames in os.walk(u"."):
+        path_gen = (abspath(join(directory, f)) for f in filenames)
+        for path in path_gen:
+            if splitext(path)[1] in recognised_ext:
+                file_queue.put(path)
+   
+    print("{} items to process...".format(file_queue.qsize()))
+   
+    # Spawn eight threads to process queues (assume that processor won't have more than 8 cores)
+    subprocesses = []
+    for i in range(8):
+        subprocesses.append(Worker(file_queue, upload_queue))
+        subprocesses[-1].start()
+       
+    while not file_queue.empty():
+        # Wait for 10 seconds or until something pops up on the upload queue
+        try:
+            data = upload_queue.get(True, 10)
+        except Queue.Empty:
+            pass
+        else:
+            upload_waveplot_data(data[1])
+        
+    # Wait for file_queue to be completely used up, if it isn't already
+    file_queue.join()
+    
+    # Process the remaining items on upload_queue
+    
+    while True:
+        # Keep getting items until the queue tells us it's empty.
+        try:
+            data = upload_queue.get_nowait()
+        except Queue.Empty:
+            break
+        else:
+            upload_waveplot_data(data[1])
+"""
     config_path = None
     data_path = None
 
@@ -312,4 +381,4 @@ if __name__ == "__main__":
                         c.execute("INSERT OR REPLACE INTO scanned_files VALUES (?,?,?,?)", (in_path, result, VERSION, datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")))
                         db_conn.commit()
 
-    db_conn.close()
+    db_conn.close()"""
